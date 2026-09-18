@@ -312,7 +312,13 @@ export interface PredictResult {
     recommendation: string;
     probabilities: Record<string, number>;
   };
-  model_info: { type: string; training_samples: string; features: number; feature_names: string[] };
+  model_info: {
+    type: string;
+    training_samples: number;
+    training_source: string;
+    features: number;
+    terrain_enriched: boolean;
+  };
   timestamp: string;
 }
 
@@ -539,6 +545,9 @@ export interface MLHealth {
   model_type: string;
   terrain_lookup: boolean;
   version: string;
+  training_source: string;
+  training_samples: number;
+  training_enabled: boolean;
 }
 export interface MLDistrictRisk {
   district: string;
