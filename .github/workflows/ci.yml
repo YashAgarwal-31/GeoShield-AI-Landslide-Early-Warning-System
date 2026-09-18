@@ -1,0 +1,65 @@
+name: GeoShield CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      APP_ENV: demo
+      WEATHER_LIVE_ENABLED: "false"
+      MODEL_TRAINING_ENABLED: "false"
+      TRUST_PROXY_HEADERS: "false"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install backend
+        working-directory: backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest
+          pip check
+
+      - name: Install frontend
+        working-directory: frontend
+        run: npm ci
+
+      - name: Frontend audit
+        working-directory: frontend
+        run: npm audit --audit-level=high
+
+      - name: Build frontend
+        working-directory: frontend
+        run: npm run build
+
+      - name: Backend tests
+        working-directory: backend
+        run: python -m pytest tests -q
+
+      - name: Docker build
+        run: docker build -t geoshield:ci .
