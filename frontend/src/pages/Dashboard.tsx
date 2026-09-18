@@ -99,6 +99,8 @@ export default function Dashboard() {
             'alerts.reset',
             'report.created',
             'report.updated',
+            'station.created',
+            'station.updated',
           ].includes(message.type)) {
             fetchData();
           }
