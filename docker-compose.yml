@@ -15,7 +15,9 @@ services:
       ENABLE_DEMO_USERS: "true"
     volumes:
       - geoshield_data:/app/data
+      - geoshield_uploads:/app/backend/app/uploads
     restart: unless-stopped
 
 volumes:
   geoshield_data:
+  geoshield_uploads:
