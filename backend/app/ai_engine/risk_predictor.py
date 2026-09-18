@@ -27,11 +27,13 @@ class LandslideRiskPredictor:
     Trained on mixed-provenance NER data with elevation, slope, NDVI, and soil moisture.
     """
 
-    CACHE_FILE = os.path.join(os.path.dirname(__file__), "models", "geoshield_model.pkl")
-
     def __init__(self):
-        self.model_dir = os.path.join(os.path.dirname(__file__), "models")
+        self.model_dir = os.getenv(
+            "MODEL_CACHE_DIR",
+            os.path.join(os.path.dirname(__file__), "models"),
+        )
         os.makedirs(self.model_dir, exist_ok=True)
+        self.CACHE_FILE = os.path.join(self.model_dir, "geoshield_model.pkl")
         self.model = None
         self.scaler = None
         # Features matching real training data format
