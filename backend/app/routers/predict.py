@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import desc, func
 from pydantic import BaseModel, Field
 from typing import Optional, List
-from datetime import datetime
+from datetime import datetime, timezone
 import json
 import csv
 import io
@@ -138,7 +138,7 @@ def predict_risk_at_location(req: PredictRequest, db: Session = Depends(get_db))
             "features": 9,
             "terrain_enriched": True,
         },
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).replace(tzinfo=None).isoformat(),
     }
 
 
@@ -188,7 +188,7 @@ def export_geojson(db: Session = Depends(get_db)):
         "metadata": {
             "generated_by": "GeoShield AI - SIH 2026",
             "total_stations": len(features),
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).replace(tzinfo=None).isoformat(),
         }
     }
 
@@ -228,7 +228,7 @@ def export_csv(db: Session = Depends(get_db)):
         io.BytesIO(output.getvalue().encode()),
         media_type="text/csv",
         headers={
-            "Content-Disposition": f"attachment; filename=geoshield_export_{datetime.utcnow().strftime('%Y%m%d')}.csv"
+            "Content-Disposition": f"attachment; filename=geoshield_export_{datetime.now(timezone.utc).replace(tzinfo=None).strftime('%Y%m%d')}.csv"
         }
     )
 
