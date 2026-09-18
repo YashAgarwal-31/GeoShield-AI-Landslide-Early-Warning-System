@@ -1,0 +1,154 @@
+"""Operational-core tests for persistent auth, readiness, and sensor ingestion."""
+import uuid
+
+from fastapi.testclient import TestClient
+
+from app.auth import create_token
+from app.database import SessionLocal
+from app.main import app
+from app.models import Alert, RiskAssessment, SensorReading, UserAccount
+
+
+client = TestClient(app)
+
+
+def _admin_headers() -> dict:
+    token = create_token(
+        {
+            "email": "operational-admin@test.invalid",
+            "name": "Operational Admin",
+            "role": "admin",
+        }
+    )
+    return {"Authorization": f"Bearer {token}"}
+
+
+def test_readiness_checks_database():
+    response = client.get("/api/health/ready")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "ready"
+    assert data["database"] == "connected"
+
+
+def test_persistent_user_can_be_created_and_authenticated():
+    suffix = uuid.uuid4().hex[:10]
+    email = f"field-{suffix}@test.invalid"
+    password = "StrongPass123!"
+
+    create_response = client.post(
+        "/api/users",
+        json={
+            "email": email,
+            "name": "Field Test User",
+            "password": password,
+            "role": "field_officer",
+        },
+        headers=_admin_headers(),
+    )
+    assert create_response.status_code == 201, create_response.text
+    user_id = create_response.json()["id"]
+
+    login_response = client.post(
+        "/api/auth/login",
+        data={"email": email, "password": password},
+    )
+    assert login_response.status_code == 200, login_response.text
+    assert login_response.json()["user"]["role"] == "field_officer"
+
+    disable_response = client.put(
+        f"/api/users/{user_id}/status",
+        json={"is_active": False},
+        headers=_admin_headers(),
+    )
+    assert disable_response.status_code == 200
+
+    disabled_login = client.post(
+        "/api/auth/login",
+        data={"email": email, "password": password},
+    )
+    assert disabled_login.status_code == 401
+
+    db = SessionLocal()
+    try:
+        account = db.query(UserAccount).filter(UserAccount.id == user_id).first()
+        if account:
+            db.delete(account)
+            db.commit()
+    finally:
+        db.close()
+
+
+def test_sensor_ingestion_requires_valid_gateway_key(monkeypatch):
+    monkeypatch.setenv("SENSOR_INGEST_ENABLED", "true")
+    monkeypatch.setenv("SENSOR_INGEST_API_KEY", "operational-test-sensor-secret")
+
+    response = client.post(
+        "/api/sensors/stations/NER-001/readings",
+        json={"rainfall_mm": 10, "soil_moisture": 40},
+        headers={"X-GeoShield-Sensor-Key": "wrong-key"},
+    )
+    assert response.status_code == 401
+
+
+def test_sensor_ingestion_persists_runs_ml_and_is_idempotent(monkeypatch):
+    monkeypatch.setenv("SENSOR_INGEST_ENABLED", "true")
+    monkeypatch.setenv("SENSOR_INGEST_API_KEY", "operational-test-sensor-secret")
+
+    external_id = f"gateway-{uuid.uuid4().hex}"
+    payload = {
+        "external_id": external_id,
+        "rainfall_mm": 110,
+        "soil_moisture": 88,
+        "soil_temperature": 24,
+        "ground_displacement": 9,
+        "tilt_angle_x": 3.0,
+        "tilt_angle_y": 2.5,
+        "pore_water_pressure": 75,
+        "vibration_level": 20,
+    }
+
+    response = client.post(
+        "/api/sensors/stations/NER-001/readings",
+        json=payload,
+        headers={"X-GeoShield-Sensor-Key": "operational-test-sensor-secret"},
+    )
+    assert response.status_code == 201, response.text
+    data = response.json()
+    assert data["status"] == "accepted"
+    assert data["reading"]["source"] == "sensor_gateway"
+    assert data["reading"]["external_id"] == external_id
+    assert 0 <= data["risk_assessment"]["risk_score"] <= 100
+
+    duplicate = client.post(
+        "/api/sensors/stations/NER-001/readings",
+        json=payload,
+        headers={"X-GeoShield-Sensor-Key": "operational-test-sensor-secret"},
+    )
+    assert duplicate.status_code == 201
+    assert duplicate.json()["status"] == "duplicate"
+
+    db = SessionLocal()
+    try:
+        reading = (
+            db.query(SensorReading)
+            .filter(SensorReading.external_id == external_id)
+            .first()
+        )
+        assert reading is not None
+        timestamp = reading.timestamp
+
+        db.query(Alert).filter(
+            Alert.station_id == "NER-001",
+            Alert.title.like("[SENSOR]%"),
+            Alert.created_at >= timestamp,
+        ).delete(synchronize_session=False)
+        db.query(RiskAssessment).filter(
+            RiskAssessment.station_id == "NER-001",
+            RiskAssessment.model_version == "v2.1-sensor-ingest",
+            RiskAssessment.timestamp == timestamp,
+        ).delete(synchronize_session=False)
+        db.delete(reading)
+        db.commit()
+    finally:
+        db.close()
