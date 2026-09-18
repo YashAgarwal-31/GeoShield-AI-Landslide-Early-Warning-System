@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 from app.auth import get_current_user, require_role
 from app.database import get_db
 from app.models import CitizenReport, RoadStatus, Village
+from app.realtime import alert_manager
 
 
 router = APIRouter(prefix="/api", tags=["reports"])
@@ -101,6 +102,7 @@ def _attachment_response(report: CitizenReport) -> dict:
         "longitude": report.longitude,
         "reporter_name": report.reporter_name,
         "reporter_language": report.reporter_language,
+        "submitted_by": report.submitted_by,
         "status": report.status,
         "attachment_filename": report.attachment_filename,
         "created_at": report.created_at.isoformat() if report.created_at else None,
@@ -132,6 +134,7 @@ async def create_report(
         reporter_name=reporter_name.strip() if reporter_name else None,
         reporter_phone=reporter_phone.strip() if reporter_phone else None,
         reporter_language=reporter_language,
+        submitted_by=str(user.get("sub") or "").strip().lower() or None,
         status="pending",
         attachment_filename=attachment_filename,
     )
@@ -144,6 +147,16 @@ async def create_report(
         if attachment_filename:
             (_upload_dir() / attachment_filename).unlink(missing_ok=True)
         raise
+
+    await alert_manager.broadcast({
+        "type": "report.created",
+        "report": {
+            "id": report.id,
+            "report_type": report.report_type,
+            "status": report.status,
+            "created_at": report.created_at.isoformat() if report.created_at else None,
+        },
+    })
 
     return {
         "status": "success",
@@ -164,6 +177,10 @@ def get_reports(
     user: dict = Depends(get_current_user),
 ):
     query = db.query(CitizenReport)
+    if user.get("role") == "citizen":
+        query = query.filter(
+            CitizenReport.submitted_by == str(user.get("sub") or "").strip().lower()
+        )
     if status:
         query = query.filter(CitizenReport.status == status)
     if report_type:
@@ -182,6 +199,11 @@ def get_report_attachment(
     report = db.query(CitizenReport).filter(CitizenReport.id == report_id).first()
     if report is None:
         raise HTTPException(status_code=404, detail="Report not found")
+    if user.get("role") == "citizen":
+        owner = str(report.submitted_by or "").strip().lower()
+        requester = str(user.get("sub") or "").strip().lower()
+        if not owner or owner != requester:
+            raise HTTPException(status_code=403, detail="Report attachment is not accessible")
     if not report.attachment_filename:
         raise HTTPException(status_code=404, detail="Report has no attachment")
 
@@ -206,7 +228,7 @@ def get_report_attachment(
 
 
 @router.put("/reports/{report_id}/verify")
-def verify_report(
+async def verify_report(
     report_id: int,
     db: Session = Depends(get_db),
     user: dict = Depends(require_role("admin")),
@@ -218,6 +240,10 @@ def verify_report(
     report.status = "verified"
     report.verified_by = str(user.get("sub") or user.get("name") or "admin")
     db.commit()
+    await alert_manager.broadcast({
+        "type": "report.updated",
+        "report": {"id": report.id, "status": report.status},
+    })
     return {
         "message": "Report verified",
         "id": report_id,
@@ -226,7 +252,7 @@ def verify_report(
 
 
 @router.put("/reports/{report_id}/dismiss")
-def dismiss_report(
+async def dismiss_report(
     report_id: int,
     db: Session = Depends(get_db),
     user: dict = Depends(require_role("admin", "field_officer", "district_admin")),
@@ -236,6 +262,10 @@ def dismiss_report(
         raise HTTPException(status_code=404, detail="Report not found")
     report.status = "dismissed"
     db.commit()
+    await alert_manager.broadcast({
+        "type": "report.updated",
+        "report": {"id": report.id, "status": report.status},
+    })
     return {"message": "Report dismissed", "id": report_id}
 
 
