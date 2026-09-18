@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
-from datetime import datetime
+from datetime import datetime, timezone
 from app.database import get_db
 from app.models import Alert
 from app.auth import get_current_user, require_role
@@ -67,7 +67,7 @@ def acknowledge_alert(alert_id: int, db: Session = Depends(get_db), user: dict =
     if not alert:
         raise HTTPException(status_code=404, detail="Alert not found")
     alert.status = "acknowledged"
-    alert.acknowledged_at = datetime.utcnow()
+    alert.acknowledged_at = datetime.now(timezone.utc).replace(tzinfo=None)
     db.commit()
     return {"message": "Alert acknowledged", "id": alert_id}
 
@@ -78,7 +78,7 @@ def resolve_alert(alert_id: int, db: Session = Depends(get_db), user: dict = Dep
     if not alert:
         raise HTTPException(status_code=404, detail="Alert not found")
     alert.status = "resolved"
-    alert.resolved_at = datetime.utcnow()
+    alert.resolved_at = datetime.now(timezone.utc).replace(tzinfo=None)
     db.commit()
     return {"message": "Alert resolved", "id": alert_id}
 
