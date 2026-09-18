@@ -6,6 +6,9 @@ const config: CapacitorConfig = {
   webDir: 'dist',
   server: {
     androidScheme: 'https',
+    // Required by the academic/debug APK when connecting to a LAN HTTP backend.
+    // Signed production releases should use an HTTPS backend and disable this.
+    cleartext: true,
   },
 };
 

@@ -635,6 +635,13 @@ jobs:
         working-directory: frontend/android
         run: ./gradlew assembleDebug --no-daemon
 
+      - name: Verify Android local backend transport
+        shell: bash
+        run: |
+          set -euo pipefail
+          MANIFEST="frontend/android/app/src/main/AndroidManifest.xml"
+          grep -q 'android:usesCleartextTraffic="true"' "$MANIFEST"
+
       - name: Verify Android package
         shell: bash
         run: |

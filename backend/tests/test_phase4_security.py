@@ -121,3 +121,14 @@ def test_production_start_rejects_missing_jwt_secret():
     )
     assert result.returncode != 0
     assert "JWT_SECRET" in (result.stdout + result.stderr)
+
+
+def test_demo_capacitor_origin_is_allowed():
+    response = client.options(
+        "/api/health",
+        headers={
+            "Origin": "https://localhost",
+            "Access-Control-Request-Method": "GET",
+        },
+    )
+    assert response.headers.get("access-control-allow-origin") == "https://localhost"

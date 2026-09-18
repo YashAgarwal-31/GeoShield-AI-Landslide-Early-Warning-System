@@ -128,14 +128,14 @@ function stopBackend() {
 }
 
 // Wait for backend to be ready
-function waitForBackend(retries = 30, delay = 1000) {
+function waitForBackend(retries = 120, delay = 1000) {
   return new Promise((resolve, reject) => {
     const http = require('http');
     let attempts = 0;
 
     const check = () => {
       attempts++;
-      const req = http.get(`${BACKEND_URL}/api/health`, (res) => {
+      const req = http.get(`${BACKEND_URL}/api/health/ready`, (res) => {
         if (res.statusCode === 200) {
           console.log('[GeoShield] Backend ready!');
           resolve();
@@ -145,7 +145,7 @@ function waitForBackend(retries = 30, delay = 1000) {
       });
 
       req.on('error', () => retry());
-      req.setTimeout(500, () => { req.destroy(); retry(); });
+      req.setTimeout(1000, () => { req.destroy(); retry(); });
     };
 
     const retry = () => {
