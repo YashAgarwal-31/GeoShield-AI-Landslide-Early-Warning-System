@@ -7,7 +7,7 @@ import sys
 from datetime import datetime, timezone
 from typing import List
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Form
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Form, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from starlette.staticfiles import StaticFiles
@@ -50,8 +50,9 @@ def _cors_origins() -> list[str]:
 
 
 from app.database import engine, Base, SessionLocal
-from app.routers import sensors, dashboard, alerts, reports, weather, simulator, satellite, predict, alerts_timeline, flood, ml_enhanced
-from app.auth import authenticate_user, create_token
+from app.routers import sensors, dashboard, alerts, reports, weather, simulator, satellite, predict, alerts_timeline, flood, ml_enhanced, users
+from app.auth import authenticate_user, create_token, ensure_bootstrap_admin
+from app.database import get_db
 
 
 class ConnectionManager:
@@ -176,6 +177,7 @@ app.include_router(predict.router)
 app.include_router(alerts_timeline.router)
 app.include_router(flood.router)
 app.include_router(ml_enhanced.router)
+app.include_router(users.router)
 
 
 @app.get("/health", response_class=JSONResponse)
