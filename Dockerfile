@@ -1,33 +1,41 @@
-FROM python:3.12-slim
+# syntax=docker/dockerfile:1
 
-# Install Node.js (slim has no curl, so install it first)
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends curl ca-certificates && \
-    curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && \
-    apt-get install -y --no-install-recommends nodejs && \
-    apt-get clean && rm -rf /var/lib/apt/lists/*
+FROM node:22-alpine AS frontend-builder
+WORKDIR /build/frontend
+COPY frontend/package.json frontend/package-lock.json ./
+RUN npm ci
+COPY frontend/ ./
+RUN npm run build
+
+
+FROM python:3.12-slim AS runtime
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    APP_ENV=production \
+    WEATHER_LIVE_ENABLED=false \
+    MODEL_TRAINING_ENABLED=false
 
 WORKDIR /app
 
-# Install Python dependencies
-COPY backend/requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+COPY backend/requirements.txt /app/requirements.txt
+RUN pip install --no-cache-dir -r /app/requirements.txt
 
-# Copy backend
-COPY backend/ ./backend/
+RUN addgroup --system geoshield && \
+    adduser --system --ingroup geoshield --home /app geoshield && \
+    mkdir -p /app/data
 
-# Copy datasets for AI training data
-COPY datasets/ ./datasets/
+COPY --chown=geoshield:geoshield backend/ /app/backend/
+COPY --chown=geoshield:geoshield datasets/ /app/datasets/
+COPY --from=frontend-builder --chown=geoshield:geoshield /build/frontend/dist /app/frontend/dist
 
-# Build frontend
-COPY frontend/ ./frontend/
-WORKDIR /app/frontend
-RUN npm install && npm run build
-
+USER geoshield
 WORKDIR /app/backend
 
-# Expose port
 EXPOSE 8000
 
-# Start the server
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+  CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=3)"
+
 CMD ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
