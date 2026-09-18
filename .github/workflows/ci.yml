@@ -196,3 +196,61 @@ jobs:
             --data-urlencode 'email=ci-admin@example.invalid' \
             --data-urlencode "password=$ADMIN_PASSWORD" \
             http://127.0.0.1:8000/api/auth/login >/dev/null
+
+
+  postgres-integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      APP_ENV: production
+      DATABASE_URL: postgresql+psycopg://geoshield:geoshield_ci@127.0.0.1:5432/geoshield_ci
+      JWT_SECRET: ci-postgres-jwt-secret-0123456789abcdef0123456789abcdef
+      ENABLE_DEMO_USERS: "false"
+      GEOSHIELD_ADMIN_EMAIL: ci-admin@example.invalid
+      GEOSHIELD_ADMIN_PASSWORD: StrongCiAdminPassword123!
+      GEOSHIELD_ADMIN_NAME: CI Admin
+      AUTO_SEED_REFERENCE_DATA: "true"
+      WEATHER_LIVE_ENABLED: "false"
+      MODEL_TRAINING_ENABLED: "false"
+      SENSOR_INGEST_ENABLED: "false"
+      TRUST_PROXY_HEADERS: "false"
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: geoshield_ci
+          POSTGRES_USER: geoshield
+          POSTGRES_PASSWORD: geoshield_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U geoshield -d geoshield_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Python 3.12
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install backend
+        working-directory: backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest
+          pip check
+
+      - name: PostgreSQL migration and operational tests
+        working-directory: backend
+        run: |
+          python -m alembic upgrade head
+          python -m pytest tests/test_operational_core.py -q
