@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { getReports, submitReport, verifyReport, dismissReport, Report } from '../services/api';
+import { getReports, submitReport, verifyReport, dismissReport, getReportAttachment, Report } from '../services/api';
 import { useAuth } from '../App';
 import { t, getCurrentLanguage } from '../i18n/translations';
 import {
@@ -48,6 +48,7 @@ export default function Reports() {
   const [formLng, setFormLng] = useState('');
   const [formName, setFormName] = useState('');
   const [formPhone, setFormPhone] = useState('');
+  const [formAttachment, setFormAttachment] = useState<File | null>(null);
 
   const fetchReports = useCallback(async () => {
     try {
@@ -83,12 +84,28 @@ export default function Reports() {
     }
   };
 
+  const handleOpenAttachment = async (id: number) => {
+    try {
+      const response = await getReportAttachment(id);
+      const url = URL.createObjectURL(response.data);
+      window.open(url, '_blank', 'noopener,noreferrer');
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+    } catch (e: any) {
+      const msg = e.response?.data?.detail || 'Unable to open attachment.';
+      setActionFeedback({ id, type: 'error', message: msg });
+    }
+  };
+
   useEffect(() => {
     fetchReports();
   }, [fetchReports]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (formAttachment && formAttachment.size > 10 * 1024 * 1024) {
+      setError('Attachment must be 10 MB or smaller.');
+      return;
+    }
     setSubmitting(true);
     try {
       const formData = new FormData();
@@ -97,7 +114,8 @@ export default function Reports() {
       formData.append('latitude', formLat || '25.5');
       formData.append('longitude', formLng || '92.5');
       if (formName) formData.append('reporter_name', formName);
-      if (formPhone)    formData.append('reporter_phone', formPhone);
+      if (formPhone) formData.append('reporter_phone', formPhone);
+      if (formAttachment) formData.append('attachment', formAttachment);
       formData.append('reporter_language', getCurrentLanguage());
 
       await submitReport(formData);
@@ -111,6 +129,7 @@ export default function Reports() {
         setFormLng('');
         setFormName('');
         setFormPhone('');
+        setFormAttachment(null);
         fetchReports();
       }, 2000);
     } catch (e) {
@@ -273,6 +292,18 @@ export default function Reports() {
                 </div>
               </div>
 
+              {/* Evidence attachment */}
+              <div>
+                <label className="text-xs text-dark-400 mb-1 block">Photo / video evidence</label>
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,video/mp4,video/webm"
+                  onChange={(e) => setFormAttachment(e.target.files?.[0] || null)}
+                  className="w-full px-3 py-2 rounded-lg bg-dark-800 border border-dark-700 text-dark-300 text-xs file:mr-3 file:px-3 file:py-1.5 file:rounded-md file:border-0 file:bg-green-600/20 file:text-green-400"
+                />
+                <p className="text-[10px] text-dark-500 mt-1">JPEG, PNG, WebP, MP4 or WebM · max 10 MB</p>
+              </div>
+
               {/* Actions */}
               <div className="flex gap-3 pt-2">
                 <button
@@ -349,6 +380,14 @@ export default function Reports() {
                 </span>
               </div>
               <p className="text-sm text-dark-300 mb-2">{report.description}</p>
+              {report.attachment_filename && (
+                <button
+                  onClick={() => handleOpenAttachment(report.id)}
+                  className="mb-2 px-2.5 py-1.5 rounded-lg bg-blue-600/10 text-blue-400 border border-blue-600/20 text-xs hover:bg-blue-600/20 transition-all"
+                >
+                  View evidence
+                </button>
+              )}
               <div className="flex items-center gap-3 text-xs text-dark-400">
                 <span className="flex items-center gap-1">
                   <MapPin className="w-3 h-3" />
