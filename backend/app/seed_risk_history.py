@@ -69,11 +69,11 @@ def seed_risk_history():
                 db.add(assessment)
 
         db.commit()
-        print(f"[Seed] ✅ Generated {len(stations) * 48} historical risk assessments")
+        print(f"[Seed] Generated {len(stations) * 48} historical risk assessments")
 
     except Exception as e:
         db.rollback()
-        print(f"[Seed] ❌ Error: {e}")
+        print(f"[Seed] Error: {e}")
         raise
     finally:
         db.close()
