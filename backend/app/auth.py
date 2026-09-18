@@ -9,10 +9,24 @@ from datetime import datetime, timedelta, timezone
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
-# Secret key for JWT signing — in production, use a proper secret manager
+def _env_bool(name: str, default: bool = False) -> bool:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
+APP_ENV = os.getenv("APP_ENV", "demo").strip().lower()
+IS_PRODUCTION = APP_ENV in {"prod", "production"}
+ENABLE_DEMO_USERS = _env_bool("ENABLE_DEMO_USERS", default=not IS_PRODUCTION)
+
+# main.py fails closed before importing auth in production when this is absent.
 JWT_SECRET = os.getenv("JWT_SECRET", "geoshield-dev-secret-change-in-production")
 JWT_ALGORITHM = "HS256"
-JWT_EXPIRY_HOURS = 24
+try:
+    JWT_EXPIRY_HOURS = max(1, min(int(os.getenv("JWT_EXPIRY_HOURS", "24")), 168))
+except ValueError:
+    JWT_EXPIRY_HOURS = 24
 
 
 def _hash_password(password: str) -> str:
@@ -26,21 +40,58 @@ def _verify_password(password: str, hashed: str) -> bool:
 
 security = HTTPBearer(auto_error=False)
 
-# Demo user database (in production, use a real DB with hashed passwords)
-# Passwords are hashed with bcrypt
-DEMO_USERS = {
-    "admin@geoshield.gov.in": {"password_hash": _hash_password("admin123"), "name": "Admin", "role": "admin"},
-    "field@geoshield.gov.in": {"password_hash": _hash_password("field123"), "name": "Field Officer", "role": "field_officer"},
-    "district@geoshield.gov.in": {"password_hash": _hash_password("district123"), "name": "District Admin", "role": "district_admin"},
-    "citizen@geoshield.gov.in": {"password_hash": _hash_password("demo123"), "name": "Citizen", "role": "citizen"},
-}
+def _build_user_store() -> dict:
+    """Build local demo users plus an optional secret-managed production admin."""
+    users = {}
+
+    if ENABLE_DEMO_USERS:
+        users.update({
+            "admin@geoshield.gov.in": {"password_hash": _hash_password("admin123"), "name": "Admin", "role": "admin"},
+            "field@geoshield.gov.in": {"password_hash": _hash_password("field123"), "name": "Field Officer", "role": "field_officer"},
+            "district@geoshield.gov.in": {"password_hash": _hash_password("district123"), "name": "District Admin", "role": "district_admin"},
+            "citizen@geoshield.gov.in": {"password_hash": _hash_password("demo123"), "name": "Citizen", "role": "citizen"},
+        })
+
+    admin_email = os.getenv("GEOSHIELD_ADMIN_EMAIL", "").strip().lower()
+    admin_password = os.getenv("GEOSHIELD_ADMIN_PASSWORD", "")
+    if admin_email or admin_password:
+        if not admin_email or not admin_password:
+            raise RuntimeError(
+                "GEOSHIELD_ADMIN_EMAIL and GEOSHIELD_ADMIN_PASSWORD must be set together."
+            )
+        if IS_PRODUCTION and len(admin_password) < 12:
+            raise RuntimeError(
+                "GEOSHIELD_ADMIN_PASSWORD must be at least 12 characters in production."
+            )
+        users[admin_email] = {
+            "password_hash": _hash_password(admin_password),
+            "name": os.getenv("GEOSHIELD_ADMIN_NAME", "GeoShield Admin").strip() or "GeoShield Admin",
+            "role": "admin",
+        }
+
+    if IS_PRODUCTION and not users:
+        raise RuntimeError(
+            "Production authentication is not configured. Set GEOSHIELD_ADMIN_EMAIL "
+            "and GEOSHIELD_ADMIN_PASSWORD, or explicitly enable demo users only for "
+            "a controlled non-public demonstration."
+        )
+
+    return users
+
+
+AUTH_USERS = _build_user_store()
 
 
 def authenticate_user(email: str, password: str) -> dict | None:
-    """Authenticate a user against the demo user database."""
-    user = DEMO_USERS.get(email)
+    """Authenticate against the configured local/demo credential store."""
+    normalized_email = email.strip().lower()
+    user = AUTH_USERS.get(normalized_email)
     if user and _verify_password(password, user["password_hash"]):
-        return {"email": email, "name": user["name"], "role": user["role"]}
+        return {
+            "email": normalized_email,
+            "name": user["name"],
+            "role": user["role"],
+        }
     return None
 
 
