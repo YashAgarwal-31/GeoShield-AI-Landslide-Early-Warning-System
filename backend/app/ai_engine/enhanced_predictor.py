@@ -59,6 +59,7 @@ MODEL_DIR = os.getenv(
 )
 MODEL_PATH = os.path.join(MODEL_DIR, "enhanced_xgb_model.pkl")
 ENCODER_PATH = os.path.join(MODEL_DIR, "label_encoder.pkl")
+_ENHANCED_MODEL_VERSION = "1.1"
 
 
 class EnhancedLandslidePredictor:
@@ -94,12 +95,19 @@ class EnhancedLandslidePredictor:
             try:
                 cached = joblib.load(MODEL_PATH)
                 if isinstance(cached, dict):
+                    if cached.get("version") != _ENHANCED_MODEL_VERSION:
+                        print(
+                            "[Enhanced Predictor] Cached model version mismatch; "
+                            "retraining with the current contract."
+                        )
+                        return
                     self.model = cached.get("model")
                     self.scaler = cached.get("scaler")
                     self.label_encoder = cached.get("encoder")
                     self.training_source = cached.get("training_source", "unknown")
                 else:
-                    self.model = cached
+                    print("[Enhanced Predictor] Legacy unversioned cache ignored.")
+                    return
                 if os.path.exists(ENCODER_PATH):
                     self.label_encoder = joblib.load(ENCODER_PATH)
                 self.model_loaded = True
@@ -214,6 +222,7 @@ class EnhancedLandslidePredictor:
 
         # Save model
         joblib.dump({
+            "version": _ENHANCED_MODEL_VERSION,
             "model": self.model,
             "scaler": self.scaler,
             "encoder": self.label_encoder,
