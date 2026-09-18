@@ -1,10 +1,19 @@
 services:
   - type: web
     name: geoshield
-    runtime: python
-    buildCommand: cd frontend && npm install && npm run build && cd ../backend && pip install -r requirements.txt
-    startCommand: cd backend && python -m uvicorn app.main:app --host 0.0.0.0 --port $PORT
-    envVars:
-      - key: PYTHON_VERSION
-        value: "3.12"
+    runtime: docker
+    dockerfilePath: ./Dockerfile
     healthCheckPath: /api/health
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: JWT_SECRET
+        generateValue: true
+      - key: ENABLE_DEMO_USERS
+        value: "false"
+      - key: WEATHER_LIVE_ENABLED
+        value: "false"
+      - key: MODEL_TRAINING_ENABLED
+        value: "false"
+      - key: TRUST_PROXY_HEADERS
+        value: "true"
