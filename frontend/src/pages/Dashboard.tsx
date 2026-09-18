@@ -92,7 +92,14 @@ export default function Dashboard() {
       socket.onmessage = (event) => {
         try {
           const message = JSON.parse(event.data);
-          if (['sensor.reading', 'alert.created', 'alert.updated', 'alerts.reset'].includes(message.type)) {
+          if ([
+            'sensor.reading',
+            'alert.created',
+            'alert.updated',
+            'alerts.reset',
+            'report.created',
+            'report.updated',
+          ].includes(message.type)) {
             fetchData();
           }
         } catch {
