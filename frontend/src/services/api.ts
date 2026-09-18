@@ -376,6 +376,7 @@ export const resetUserPassword = (id: number, password: string) =>
 
 // --- Sensors ---
 export const getStations = () => api.get<Station[]>('/sensors/stations');
+export const getManagedStations = () => api.get<ManagedStation[]>('/sensors/stations/manage');
 export const getStation = (id: string) => api.get(`/sensors/stations/${id}`);
 export const getStationHistory = (id: string, hours = 24) => api.get(`/sensors/stations/${id}/history?hours=${hours}`);
 export const getAllLatestReadings = () =>
@@ -393,6 +394,11 @@ export interface StationCreatePayload {
   slope_angle?: number;
   soil_type?: string;
   vegetation_cover?: number;
+}
+
+export interface ManagedStation extends StationCreatePayload {
+  id: number;
+  is_active: boolean;
 }
 
 export const createStation = (data: StationCreatePayload) =>
