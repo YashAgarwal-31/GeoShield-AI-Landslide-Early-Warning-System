@@ -61,6 +61,7 @@ def test_persistent_user_can_be_created_and_authenticated():
     )
     assert login_response.status_code == 200, login_response.text
     assert login_response.json()["user"]["role"] == "field_officer"
+    issued_token = login_response.json()["token"]
 
     disable_response = client.put(
         f"/api/users/{user_id}/status",
@@ -74,6 +75,14 @@ def test_persistent_user_can_be_created_and_authenticated():
         data={"email": email, "password": password},
     )
     assert disabled_login.status_code == 401
+
+    # A token issued before deactivation must also stop working immediately.
+    disabled_existing_session = client.get(
+        "/api/reports",
+        headers={"Authorization": f"Bearer {issued_token}"},
+    )
+    assert disabled_existing_session.status_code == 401
+    assert disabled_existing_session.json()["detail"] == "Account is disabled"
 
     db = SessionLocal()
     try:
