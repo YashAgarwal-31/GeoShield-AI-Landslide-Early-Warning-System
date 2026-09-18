@@ -60,6 +60,8 @@ def get_stations(db: Session = Depends(get_db)):
         SensorReading.rainfall_mm,
         SensorReading.soil_moisture,
         SensorReading.ground_displacement,
+        SensorReading.source,
+        SensorReading.external_id,
         SensorReading.timestamp,
         func.row_number().over(
             partition_by=SensorReading.station_id,
