@@ -98,6 +98,8 @@ export default function Reports() {
 
   useEffect(() => {
     fetchReports();
+    const interval = setInterval(fetchReports, 30000);
+    return () => clearInterval(interval);
   }, [fetchReports]);
 
   useEffect(() => {
