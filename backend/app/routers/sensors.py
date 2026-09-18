@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import desc, func
 from typing import List, Optional
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from app.database import get_db
 from app.models import SensorStation, SensorReading, RiskAssessment
 
@@ -129,7 +129,7 @@ def get_station_history(
     hours: int = 24,
     db: Session = Depends(get_db)
 ):
-    since = datetime.utcnow() - timedelta(hours=hours)
+    since = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(hours=hours)
     readings = db.query(SensorReading).filter(
         SensorReading.station_id == station_id,
         SensorReading.timestamp >= since
