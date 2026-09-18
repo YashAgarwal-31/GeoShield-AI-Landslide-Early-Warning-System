@@ -31,7 +31,10 @@ except ImportError:
 
 from app.ai_engine.terrain_lookup import terrain_lookup
 
-MODEL_DIR = os.path.join(os.path.dirname(__file__), "models")
+MODEL_DIR = os.getenv(
+    "MODEL_CACHE_DIR",
+    os.path.join(os.path.dirname(__file__), "models"),
+)
 MODEL_PATH = os.path.join(MODEL_DIR, "enhanced_xgb_model.pkl")
 ENCODER_PATH = os.path.join(MODEL_DIR, "label_encoder.pkl")
 
