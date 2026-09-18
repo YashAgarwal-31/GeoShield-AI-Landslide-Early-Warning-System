@@ -190,12 +190,33 @@ app.include_router(users.router)
 @app.get("/health", response_class=JSONResponse)
 @app.get("/api/health", response_class=JSONResponse)
 def health_check():
-    return {"status": "healthy", "timestamp": datetime.now(timezone.utc).replace(tzinfo=None).isoformat()}
+    return {
+        "status": "healthy",
+        "service": "geoshield-api",
+        "timestamp": datetime.now(timezone.utc).replace(tzinfo=None).isoformat(),
+    }
+
+
+@app.get("/api/health/ready", response_class=JSONResponse)
+def readiness_check(db=Depends(get_db)):
+    from sqlalchemy import text
+
+    try:
+        db.execute(text("SELECT 1"))
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail=f"Database unavailable: {exc}")
+
+    return {
+        "status": "ready",
+        "database": "connected",
+        "environment": APP_ENV,
+        "timestamp": datetime.now(timezone.utc).replace(tzinfo=None).isoformat(),
+    }
 
 
 @app.post("/api/auth/login")
-def login(email: str = Form(...), password: str = Form(...)):
-    user = authenticate_user(email, password)
+def login(email: str = Form(...), password: str = Form(...), db=Depends(get_db)):
+    user = authenticate_user(email, password, db=db)
     if not user:
         raise HTTPException(status_code=401, detail="Invalid email or password")
     token = create_token(user)
