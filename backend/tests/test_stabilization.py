@@ -1,5 +1,5 @@
 """Post-Phase-4 stabilization regression tests."""
-from datetime import datetime
+from datetime import datetime, timezone
 
 from fastapi.testclient import TestClient
 
@@ -54,7 +54,7 @@ def test_dashboard_counts_only_latest_risk_per_station():
         predicted_time_window=1,
         recommendation="test only",
         model_version="stabilization-test",
-        timestamp=datetime.utcnow(),
+        timestamp=datetime.now(timezone.utc).replace(tzinfo=None),
     )
     try:
         db.add(extra)
