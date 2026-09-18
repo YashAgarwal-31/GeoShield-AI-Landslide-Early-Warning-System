@@ -1,7 +1,7 @@
 import { HashRouter as Router, Routes, Route, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useState, useEffect, createContext, useContext } from 'react';
 import { t, setLanguage, getCurrentLanguage, Language, languages } from './i18n/translations';
-import { loginAPI, setStoredToken, clearStoredToken, getStoredToken, getAlertStats, getServerUrl, setServerUrl, isMobileApp, api } from './services/api';
+import { loginAPI, setStoredToken, clearStoredToken, getStoredToken, getAlertStats, getServerUrl, setServerUrl, isMobileApp, normalizeServerBase, api } from './services/api';
 import Dashboard from './pages/Dashboard';
 import RiskMap from './pages/RiskMap';
 import Alerts from './pages/Alerts';
@@ -49,35 +49,36 @@ function LoginPage() {
   const [needsServer, setNeedsServer] = useState(false);
 
   useEffect(() => {
-    // When app loads from server.url (Capacitor), use relative /api path
-    const isLoadedFromServer = window.location.port === '8000' || window.location.port === '';
-    const defaultUrl = isLoadedFromServer ? '/api' : '/api';
     const saved = getServerUrl();
-    const currentUrl = saved && !isLoadedFromServer ? `${saved}/api` : defaultUrl;
-    setApiUrl(currentUrl);
-    setServerInput(saved || '');
-    // If loaded from server URL directly, no server config needed
-    if (isLoadedFromServer && !saved) {
+    const mobile = isMobileApp();
+    const pageIsHttp = window.location.protocol === 'http:' || window.location.protocol === 'https:';
+
+    if (saved) {
+      const normalized = normalizeServerBase(saved);
+      setApiUrl(normalized ? `${normalized}/api` : '/api');
+      setServerInput(saved);
       setNeedsServer(false);
       setShowServerSettings(false);
-    } else {
-      const needsConfig = !saved || saved.length < 5;
-      setNeedsServer(needsConfig);
-      if (needsConfig) {
-        setShowServerSettings(true);
-      }
+      return;
     }
+
+    // Normal browser deployments use same-origin /api. A packaged mobile app
+    // needs a backend address (unless adb reverse makes localhost available).
+    setApiUrl(pageIsHttp && !mobile ? '/api' : 'http://localhost:8000/api');
+    setServerInput('');
+    const needsConfig = mobile;
+    setNeedsServer(needsConfig);
+    setShowServerSettings(needsConfig);
   }, []);
 
-  const saveServerUrl = () => {
-    const raw = serverInput.trim();
-    if (!raw) return;
-    let url = raw.replace(/^https?:\/\//, '').replace(/\/+$/, '');
-    // Always ensure port is present — prevents double-port bugs later
-    if (!url.includes(':')) url += ':8000';
-    localStorage.setItem('geoshield_server_url', url);
-    const newApiUrl = `http://${url}/api`;
-    setApiUrl(newApiUrl);
+  const saveServerUrl = (value?: string) => {
+    const raw = (value ?? serverInput).trim();
+    const normalized = normalizeServerBase(raw);
+    if (!normalized) return;
+
+    localStorage.setItem('geoshield_server_url', normalized);
+    setServerInput(normalized);
+    setApiUrl(`${normalized}/api`);
     setNeedsServer(false);
     setShowServerSettings(false);
     setError('');
@@ -98,14 +99,8 @@ function LoginPage() {
     const candidates = [
       'localhost:8000',
       '127.0.0.1:8000',
-      '10.139.21.12:8000',
-      '10.123.230.162:8000',
+      // Android emulator special host alias.
       '10.0.2.2:8000',
-      '192.168.1.1:8000',
-      '192.168.1.100:8000',
-      '192.168.0.1:8000',
-      '192.168.0.100:8000',
-      '172.16.0.1:8000',
     ];
     
     for (const candidate of candidates) {
@@ -116,8 +111,7 @@ function LoginPage() {
         const res = await fetch(testUrl, { signal: controller.signal, mode: 'cors' });
         clearTimeout(timeoutId);
         if (res.ok) {
-          setServerInput(candidate);
-          saveServerUrl();
+          saveServerUrl(candidate);
           setError(`Connected to server at ${candidate}`);
           setLoading(false);
           return;
@@ -680,7 +674,7 @@ function MainLayout() {
             </button>
             <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-green-600/10 border border-green-600/20">
               <Radio className="w-3 h-3 text-green-400" />
-              <span className="text-[10px] text-green-400 font-semibold">LIVE</span>
+              <span className="text-[10px] text-green-400 font-semibold">MONITORING DEMO</span>
             </div>
             <span className="text-xs text-dark-400 hidden md:inline">NER Region • 8 States • 20 Stations</span>
           </div>
@@ -735,7 +729,9 @@ function App() {
     const token = getStoredToken();
     if (token) {
       try {
-        const payload = JSON.parse(atob(token.split('.')[1]));
+        const segment = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+        const padded = segment.padEnd(Math.ceil(segment.length / 4) * 4, '=');
+        const payload = JSON.parse(atob(padded));
         if (payload.exp * 1000 > Date.now()) {
           setUser({ name: payload.name, role: payload.role });
           setIsLoggedIn(true);
