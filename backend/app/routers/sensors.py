@@ -16,6 +16,7 @@ from app.schemas import (
 )
 from app.ai_engine.risk_predictor import get_predictor
 from app.auth import require_role
+from app.realtime import alert_manager
 
 router = APIRouter(prefix="/api/sensors", tags=["sensors"])
 
@@ -293,7 +294,7 @@ def get_all_latest_readings(db: Session = Depends(get_db)):
 
 
 @router.post("/stations/{station_id}/readings", status_code=201)
-def ingest_sensor_reading(
+async def ingest_sensor_reading(
     station_id: str,
     payload: SensorReadingIngestRequest,
     db: Session = Depends(get_db),
@@ -394,6 +395,31 @@ def ingest_sensor_reading(
     db.refresh(reading)
     if alert is not None:
         db.refresh(alert)
+        await alert_manager.publish_alert(
+            event_type="alert.created",
+            alert=alert,
+            district=station.district,
+        )
+
+    await alert_manager.broadcast(
+        {
+            "type": "sensor.reading",
+            "station_id": station.station_id,
+            "district": station.district,
+            "reading": {
+                "id": reading.id,
+                "source": reading.source,
+                "external_id": reading.external_id,
+                "observed_at": reading.timestamp.isoformat() if reading.timestamp else None,
+            },
+            "risk_assessment": {
+                "risk_level": result["risk_level"],
+                "risk_score": result["risk_score"],
+                "landslide_probability": result["landslide_probability"],
+            },
+        },
+        district=station.district,
+    )
 
     return {
         "status": "accepted",
