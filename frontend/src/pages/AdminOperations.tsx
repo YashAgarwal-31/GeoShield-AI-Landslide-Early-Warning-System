@@ -4,6 +4,7 @@ import {
   createUser,
   getReadiness,
   getUsers,
+  resetUserPassword,
   setUserStatus,
   StationCreatePayload,
   UserAccount,
@@ -98,6 +99,31 @@ export default function AdminOperations() {
       setUserMessage({
         kind: 'error',
         text: error.response?.data?.detail || 'Unable to update user status.',
+      });
+    }
+  };
+
+  const resetPassword = async (account: UserAccount) => {
+    const password = window.prompt(
+      `Enter a new password for ${account.email} (minimum 8 characters):`,
+    );
+    if (password === null) return;
+    if (password.length < 8) {
+      setUserMessage({ kind: 'error', text: 'Password must be at least 8 characters.' });
+      return;
+    }
+
+    setUserMessage(null);
+    try {
+      await resetUserPassword(account.id, password);
+      setUserMessage({
+        kind: 'success',
+        text: `Password reset successfully for ${account.email}.`,
+      });
+    } catch (error: any) {
+      setUserMessage({
+        kind: 'error',
+        text: error.response?.data?.detail || 'Unable to reset password.',
       });
     }
   };
@@ -236,16 +262,24 @@ export default function AdminOperations() {
                   <p className="text-sm text-white truncate">{account.name}</p>
                   <p className="text-[11px] text-dark-400 truncate">{account.email} · {account.role}</p>
                 </div>
-                <button
-                  onClick={() => toggleUser(account)}
-                  className={`px-2.5 py-1.5 rounded-lg text-[11px] border ${
-                    account.is_active
-                      ? 'border-green-600/30 bg-green-600/10 text-green-300'
-                      : 'border-dark-600 bg-dark-800 text-dark-400'
-                  }`}
-                >
-                  {account.is_active ? 'Active' : 'Disabled'}
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => resetPassword(account)}
+                    className="px-2.5 py-1.5 rounded-lg text-[11px] border border-blue-600/30 bg-blue-600/10 text-blue-300 hover:bg-blue-600/20"
+                  >
+                    Reset password
+                  </button>
+                  <button
+                    onClick={() => toggleUser(account)}
+                    className={`px-2.5 py-1.5 rounded-lg text-[11px] border ${
+                      account.is_active
+                        ? 'border-green-600/30 bg-green-600/10 text-green-300'
+                        : 'border-dark-600 bg-dark-800 text-dark-400'
+                    }`}
+                  >
+                    {account.is_active ? 'Active' : 'Disabled'}
+                  </button>
+                </div>
               </div>
             ))}
           </div>
