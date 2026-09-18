@@ -68,6 +68,9 @@ class RateLimiter(BaseHTTPMiddleware):
         return False
 
     async def dispatch(self, request: Request, call_next):
+        if not _env_bool("RATE_LIMIT_ENABLED", True):
+            return await call_next(request)
+
         path = request.url.path
 
         # Health/static/non-API routes do not consume the API rate budget.
