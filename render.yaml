@@ -19,5 +19,7 @@ services:
         value: "false"
       - key: MODEL_TRAINING_ENABLED
         value: "false"
+      - key: ALLOW_SYNTHETIC_MODEL_FALLBACK
+        value: "false"
       - key: TRUST_PROXY_HEADERS
         value: "true"
