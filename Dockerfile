@@ -30,6 +30,12 @@ COPY --chown=geoshield:geoshield backend/ /app/backend/
 COPY --chown=geoshield:geoshield datasets/ /app/datasets/
 COPY --from=frontend-builder --chown=geoshield:geoshield /build/frontend/dist /app/frontend/dist
 
+# Keep operational evidence storage writable by the non-root runtime user.
+# Creating the directory in the image also gives Docker named volumes the
+# correct initial ownership on first mount.
+RUN mkdir -p /app/backend/app/uploads/reports && \
+    chown -R geoshield:geoshield /app/backend/app/uploads
+
 USER geoshield
 WORKDIR /app/backend
 
