@@ -22,6 +22,21 @@ from app.auth import require_role
 router = APIRouter(prefix="/api/simulate", tags=["simulate"])
 
 
+def _to_core_risk_level(level: str, score: float) -> str:
+    """Map enhanced-model labels to the four operational alert levels."""
+    if level == "very_high":
+        return "high"
+    if level in {"low", "moderate", "high", "critical"}:
+        return level
+    if score >= 75:
+        return "critical"
+    if score >= 50:
+        return "high"
+    if score >= 25:
+        return "moderate"
+    return "low"
+
+
 class LandslideRequest(BaseModel):
     station_id: Optional[str] = Field(None, pattern=r"^NER-\d{3}$")
     intensity: Literal["low", "moderate", "high", "critical"] = "high"
@@ -117,7 +132,14 @@ def _run_simulation(
             },
         )
         result["risk_score"] = enhanced_result["risk_score"]
-        result["risk_level"] = enhanced_result["risk_level"]
+        result["risk_level"] = _to_core_risk_level(
+            enhanced_result["risk_level"],
+            float(enhanced_result["risk_score"]),
+        )
+        result["recommendation"] = predictor.recommendation_for_level(
+            result["risk_level"],
+            result.get("contributing_factors", []),
+        )
     except Exception:
         # The baseline predictor remains the deterministic fallback for demo use.
         pass
