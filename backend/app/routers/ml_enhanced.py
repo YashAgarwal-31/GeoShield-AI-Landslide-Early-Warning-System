@@ -68,7 +68,9 @@ async def ml_health():
         "model_loaded": predictor.model_loaded,
         "model_type": "xgboost" if predictor.model_loaded else "rule_based",
         "terrain_lookup": True,
-        "version": "2.0-merged",
+        "version": "2.1-operational",
+        "training_source": predictor.training_source,
+        "training_samples": predictor.training_samples,
         "training_enabled": _env_bool("MODEL_TRAINING_ENABLED", False),
     }
 
