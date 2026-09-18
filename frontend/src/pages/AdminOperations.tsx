@@ -2,10 +2,13 @@ import { FormEvent, useEffect, useState } from 'react';
 import {
   createStation,
   createUser,
+  getManagedStations,
   getReadiness,
   getUsers,
   resetUserPassword,
   setUserStatus,
+  updateStation,
+  ManagedStation,
   StationCreatePayload,
   UserAccount,
 } from '../services/api';
@@ -38,6 +41,7 @@ const EMPTY_STATION: StationCreatePayload = {
 
 export default function AdminOperations() {
   const [users, setUsers] = useState<UserAccount[]>([]);
+  const [managedStations, setManagedStations] = useState<ManagedStation[]>([]);
   const [readiness, setReadiness] = useState<{ status: string; database: string; environment: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [userMessage, setUserMessage] = useState<Message>(null);
@@ -50,16 +54,19 @@ export default function AdminOperations() {
     role: 'field_officer' as UserAccount['role'],
   });
   const [station, setStation] = useState<StationCreatePayload>({ ...EMPTY_STATION });
+  const [editingStationId, setEditingStationId] = useState<string | null>(null);
 
   const load = async () => {
     setLoading(true);
     try {
-      const [usersResponse, readinessResponse] = await Promise.all([
+      const [usersResponse, readinessResponse, stationsResponse] = await Promise.all([
         getUsers(),
         getReadiness(),
+        getManagedStations(),
       ]);
       setUsers(usersResponse.data);
       setReadiness(readinessResponse.data);
+      setManagedStations(stationsResponse.data);
     } catch (error: any) {
       setUserMessage({
         kind: 'error',
@@ -132,16 +139,68 @@ export default function AdminOperations() {
     event.preventDefault();
     setStationMessage(null);
     try {
-      await createStation(station);
+      if (editingStationId) {
+        const { station_id: _stationId, ...updates } = station;
+        await updateStation(editingStationId, updates);
+        setStationMessage({
+          kind: 'success',
+          text: `Monitoring station ${editingStationId} updated successfully.`,
+        });
+      } else {
+        await createStation(station);
+        setStationMessage({
+          kind: 'success',
+          text: 'Monitoring station provisioned. It can now accept authenticated gateway readings.',
+        });
+      }
       setStation({ ...EMPTY_STATION });
-      setStationMessage({
-        kind: 'success',
-        text: 'Monitoring station provisioned. It can now accept authenticated gateway readings.',
-      });
+      setEditingStationId(null);
+      await load();
     } catch (error: any) {
       setStationMessage({
         kind: 'error',
-        text: error.response?.data?.detail || 'Unable to provision station.',
+        text: error.response?.data?.detail || 'Unable to save monitoring station.',
+      });
+    }
+  };
+
+  const editStation = (account: ManagedStation) => {
+    setEditingStationId(account.station_id);
+    setStation({
+      station_id: account.station_id,
+      name: account.name,
+      latitude: account.latitude,
+      longitude: account.longitude,
+      state: account.state,
+      district: account.district,
+      village: account.village || '',
+      elevation: account.elevation ?? 0,
+      slope_angle: account.slope_angle ?? 0,
+      soil_type: account.soil_type || 'unknown',
+      vegetation_cover: account.vegetation_cover ?? 0,
+    });
+    setStationMessage(null);
+  };
+
+  const cancelStationEdit = () => {
+    setEditingStationId(null);
+    setStation({ ...EMPTY_STATION });
+    setStationMessage(null);
+  };
+
+  const toggleStation = async (account: ManagedStation) => {
+    setStationMessage(null);
+    try {
+      await updateStation(account.station_id, { is_active: !account.is_active });
+      setStationMessage({
+        kind: 'success',
+        text: `${account.station_id} is now ${account.is_active ? 'inactive' : 'active'}.`,
+      });
+      await load();
+    } catch (error: any) {
+      setStationMessage({
+        kind: 'error',
+        text: error.response?.data?.detail || 'Unable to update station status.',
       });
     }
   };
@@ -289,9 +348,13 @@ export default function AdminOperations() {
           <div className="flex items-center gap-2 mb-4">
             <MapPin className="w-5 h-5 text-blue-400" />
             <div>
-              <h2 className="text-lg font-semibold text-white">Provision monitoring station</h2>
+              <h2 className="text-lg font-semibold text-white">
+                {editingStationId ? 'Edit monitoring station' : 'Provision monitoring station'}
+              </h2>
               <p className="text-xs text-dark-400">
-                Creates a persistent station that can receive real gateway observations.
+                {editingStationId
+                  ? 'Update persistent station metadata or return to provisioning mode.'
+                  : 'Creates a persistent station that can receive real gateway observations.'}
               </p>
             </div>
           </div>
@@ -305,11 +368,12 @@ export default function AdminOperations() {
           <form onSubmit={submitStation} className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <input
               required
+              disabled={Boolean(editingStationId)}
               pattern="NER-[0-9]{3}"
               value={station.station_id}
               onChange={(e) => setStation({ ...station, station_id: e.target.value.toUpperCase() })}
               placeholder="Station ID (NER-101)"
-              className="px-3 py-2.5 rounded-lg bg-dark-800 border border-dark-700 text-white text-sm"
+              className="px-3 py-2.5 rounded-lg bg-dark-800 border border-dark-700 text-white text-sm disabled:opacity-60"
             />
             <input
               required
@@ -388,14 +452,71 @@ export default function AdminOperations() {
               placeholder="Vegetation cover (%)"
               className="px-3 py-2.5 rounded-lg bg-dark-800 border border-dark-700 text-white text-sm"
             />
-            <button
-              type="submit"
-              className="md:col-span-2 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-500"
-            >
-              <CheckCircle2 className="w-4 h-4" />
-              Provision station
-            </button>
+            <div className="md:col-span-2 flex gap-2">
+              <button
+                type="submit"
+                className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-500"
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                {editingStationId ? 'Save station changes' : 'Provision station'}
+              </button>
+              {editingStationId && (
+                <button
+                  type="button"
+                  onClick={cancelStationEdit}
+                  className="px-4 py-2.5 rounded-lg border border-dark-600 bg-dark-800 text-dark-300 text-sm hover:text-white"
+                >
+                  Cancel
+                </button>
+              )}
+            </div>
           </form>
+
+          <div className="mt-5 border-t border-dark-700 pt-4">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <h3 className="text-sm font-semibold text-white">Monitoring station inventory</h3>
+                <p className="text-[11px] text-dark-500">
+                  {managedStations.length} persistent stations, including inactive stations.
+                </p>
+              </div>
+            </div>
+            <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+              {managedStations.map((account) => (
+                <div
+                  key={account.station_id}
+                  className="flex items-center justify-between gap-3 rounded-lg border border-dark-700 bg-dark-850/60 px-3 py-2.5"
+                >
+                  <div className="min-w-0">
+                    <p className="text-sm text-white truncate">{account.name}</p>
+                    <p className="text-[11px] text-dark-400 truncate">
+                      {account.station_id} · {account.district}, {account.state}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => editStation(account)}
+                      className="px-2.5 py-1.5 rounded-lg text-[11px] border border-blue-600/30 bg-blue-600/10 text-blue-300 hover:bg-blue-600/20"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => toggleStation(account)}
+                      className={`px-2.5 py-1.5 rounded-lg text-[11px] border ${
+                        account.is_active
+                          ? 'border-green-600/30 bg-green-600/10 text-green-300'
+                          : 'border-dark-600 bg-dark-800 text-dark-400'
+                      }`}
+                    >
+                      {account.is_active ? 'Active' : 'Inactive'}
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </section>
       </div>
     </div>
