@@ -23,22 +23,31 @@ const isMobile = () => {
 
 // For Electron/mobile: use localhost (backend runs locally)
 // For web: use relative URL (same origin)
-const normalizeHost = (h: string): string => {
-  let host = h.replace(/^https?:\/\//, '').replace(/\/+$/, '');
-  if (!host.includes(':')) host += ':8000';
-  return host;
+export const normalizeServerBase = (input: string): string => {
+  let raw = input.trim().replace(/\/+$/, '');
+  if (!raw) return '';
+
+  if (!/^https?:\/\//i.test(raw)) {
+    // Host/IP without a scheme is treated as a local HTTP backend.
+    // Add port 8000 only when the user did not provide one.
+    if (!raw.includes(':')) raw += ':8000';
+    raw = `http://${raw}`;
+  }
+
+  try {
+    return new URL(raw).origin;
+  } catch {
+    return raw;
+  }
 };
 
 const getApiBase = () => {
-  if (isElectron()) {
+  if (isElectron() || isMobile()) {
     const savedUrl = localStorage.getItem('geoshield_server_url');
-    if (savedUrl) return `http://${normalizeHost(savedUrl)}/api`;
-    return 'http://localhost:8000/api';
-  }
-  if (isMobile()) {
-    const savedUrl = localStorage.getItem('geoshield_server_url');
-    if (savedUrl) return `http://${normalizeHost(savedUrl)}/api`;
-    // Default to localhost — works with adb reverse for USB-connected devices
+    if (savedUrl) {
+      const base = normalizeServerBase(savedUrl);
+      if (base) return `${base}/api`;
+    }
     return 'http://localhost:8000/api';
   }
   return '/api';
@@ -57,7 +66,12 @@ api.interceptors.request.use((config) => {
 
 // Allow mobile app to change server URL
 export const setServerUrl = (url: string) => {
-  localStorage.setItem('geoshield_server_url', url);
+  const normalized = normalizeServerBase(url);
+  if (normalized) {
+    localStorage.setItem('geoshield_server_url', normalized);
+  } else {
+    localStorage.removeItem('geoshield_server_url');
+  }
   window.location.reload();
 };
 
@@ -96,8 +110,11 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      clearStoredToken();
-      if (!window.location.pathname.includes('/login')) {
+      const requestUrl = String(error.config?.url || '');
+      // Invalid login should stay on the login screen so the user sees the
+      // backend error instead of getting an unexpected full-page reload.
+      if (!requestUrl.includes('/auth/login')) {
+        clearStoredToken();
         window.location.reload();
       }
     }
