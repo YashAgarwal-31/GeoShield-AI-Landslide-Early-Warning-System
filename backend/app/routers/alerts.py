@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from app.database import get_db
 from app.models import Alert
 from app.auth import get_current_user, require_role
+from app.realtime import alert_manager
 
 router = APIRouter(prefix="/api/alerts", tags=["alerts"])
 
@@ -62,24 +63,34 @@ def get_active_alerts(lang: str = "en", db: Session = Depends(get_db)):
 
 
 @router.put("/{alert_id}/acknowledge")
-def acknowledge_alert(alert_id: int, db: Session = Depends(get_db), user: dict = Depends(require_role("admin", "field_officer", "district_admin"))):
+async def acknowledge_alert(alert_id: int, db: Session = Depends(get_db), user: dict = Depends(require_role("admin", "field_officer", "district_admin"))):
     alert = db.query(Alert).filter(Alert.id == alert_id).first()
     if not alert:
         raise HTTPException(status_code=404, detail="Alert not found")
     alert.status = "acknowledged"
     alert.acknowledged_at = datetime.now(timezone.utc).replace(tzinfo=None)
     db.commit()
+    db.refresh(alert)
+    await alert_manager.publish_alert(
+        event_type="alert.updated",
+        alert=alert,
+    )
     return {"message": "Alert acknowledged", "id": alert_id}
 
 
 @router.put("/{alert_id}/resolve")
-def resolve_alert(alert_id: int, db: Session = Depends(get_db), user: dict = Depends(require_role("admin"))):
+async def resolve_alert(alert_id: int, db: Session = Depends(get_db), user: dict = Depends(require_role("admin"))):
     alert = db.query(Alert).filter(Alert.id == alert_id).first()
     if not alert:
         raise HTTPException(status_code=404, detail="Alert not found")
     alert.status = "resolved"
     alert.resolved_at = datetime.now(timezone.utc).replace(tzinfo=None)
     db.commit()
+    db.refresh(alert)
+    await alert_manager.publish_alert(
+        event_type="alert.updated",
+        alert=alert,
+    )
     return {"message": "Alert resolved", "id": alert_id}
 
 
