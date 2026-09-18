@@ -246,6 +246,7 @@ export interface Report {
   latitude: number;
   longitude: number;
   reporter_name: string | null;
+  submitted_by?: string | null;
   status: string;
   attachment_filename?: string | null;
   created_at: string;
