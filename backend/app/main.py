@@ -87,37 +87,54 @@ manager = ConnectionManager()
 
 
 def init_database():
-    # Use Alembic for production (PostgreSQL), create_all for local dev (SQLite)
-    database_url = os.getenv("DATABASE_URL", "")
-    if database_url and not database_url.startswith("sqlite"):
-        # Production: run Alembic migrations
-        try:
-            import subprocess
-            alembic_ini = os.path.join(os.path.dirname(__file__), "..", "alembic.ini")
-            result = subprocess.run(
-                [sys.executable, "-m", "alembic", "upgrade", "head"],
-                cwd=os.path.dirname(os.path.dirname(__file__)),
-                capture_output=True, text=True, timeout=30
+    """Apply schema migrations, optional reference seed data, and auth bootstrap."""
+    import subprocess
+    from sqlalchemy import inspect
+
+    backend_dir = os.path.dirname(os.path.dirname(__file__))
+
+    def _run_alembic(*args: str) -> None:
+        result = subprocess.run(
+            [sys.executable, "-m", "alembic", *args],
+            cwd=backend_dir,
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+        if result.returncode != 0:
+            raise RuntimeError(
+                f"Alembic {' '.join(args)} failed: "
+                f"{result.stderr.strip() or result.stdout.strip()}"
             )
-            if result.returncode != 0:
-                raise RuntimeError(f"Alembic migration failed: {result.stderr}")
-            print("[GeoShield] Alembic migrations applied")
-        except Exception as e:
-            if IS_PRODUCTION:
-                raise RuntimeError(f"Production database migration failed: {e}") from e
-            print(f"[GeoShield] Alembic failed in non-production mode: {e}; using create_all")
-            Base.metadata.create_all(bind=engine)
-    else:
-        # Development: create_all for instant setup
-        Base.metadata.create_all(bind=engine)
+
+    try:
+        existing_tables = set(inspect(engine).get_table_names())
+
+        # Older local GeoShield databases were created with SQLAlchemy create_all
+        # and therefore have no alembic_version table. Their schema corresponds
+        # to the 0001 baseline, so stamp that revision before applying upgrades.
+        if existing_tables and "alembic_version" not in existing_tables:
+            if "sensor_stations" not in existing_tables:
+                raise RuntimeError(
+                    "Existing database has an unknown schema and cannot be auto-migrated."
+                )
+            _run_alembic("stamp", "0001")
+            print("[GeoShield] Legacy database stamped at migration 0001")
+
+        _run_alembic("upgrade", "head")
+        print("[GeoShield] Database migrations applied")
+    except Exception as exc:
+        raise RuntimeError(f"Database initialization failed: {exc}") from exc
 
     db = SessionLocal()
     try:
         from app.models import SensorStation
+
         auto_seed = _env_bool("AUTO_SEED_REFERENCE_DATA", default=not IS_PRODUCTION)
         station_count = db.query(SensorStation).count()
         if station_count == 0 and auto_seed:
             from app.seed_data import seed_database
+
             seed_database()
         elif station_count == 0:
             print("[GeoShield] Reference station seeding is disabled; database starts empty.")
@@ -127,7 +144,8 @@ def init_database():
         ensure_bootstrap_admin(db)
     finally:
         db.close()
-    print("[GeoShield] ✅ Database ready")
+
+    print("[GeoShield] Database ready")
 
     # Report snapshot status without claiming or attempting an automatic refresh.
     try:
@@ -138,8 +156,8 @@ def init_database():
             f"mode={sat_source['mode']}, freshness={freshness}, "
             f"observed_at={sat_source['observed_at']}"
         )
-    except Exception as e:
-        print(f"[GeoShield] Satellite status check skipped: {e}")
+    except Exception as exc:
+        print(f"[GeoShield] Satellite status check skipped: {exc}")
 
 
 init_database()
