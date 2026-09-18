@@ -310,7 +310,7 @@ function LoginPage() {
               <div className="flex gap-2">
                 <button
                   type="button"
-                  onClick={saveServerUrl}
+                  onClick={() => saveServerUrl()}
                   className="flex-1 py-1.5 rounded-lg bg-green-600/20 text-green-400 text-[11px] font-medium border border-green-600/30 hover:bg-green-600/30"
                 >
                   Save & Connect
