@@ -108,6 +108,7 @@ class CitizenReport(Base):
     reporter_language = Column(String, default="en")
     status = Column(String, default="pending")  # pending, verified, dismissed
     verified_by = Column(String, nullable=True)
+    attachment_filename = Column(String, nullable=True)
     created_at = Column(DateTime, server_default=func.now())
 
 
