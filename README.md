@@ -21,11 +21,10 @@
 ---
 
 > [!IMPORTANT]
-> **Major-project development repository.** This repository is adapted from
-> [officialarghya29/GeoShield](https://github.com/officialarghya29/GeoShield)
-> and is being extended and validated by **Yash Agarwal**. Original authorship
-> remains visible in the imported history. See [NOTICE.md](NOTICE.md) and
-> [DATA_PROVENANCE.md](DATA_PROVENANCE.md) for lineage and data limitations.
+> **Major-project development repository.** This repository is being extended
+> and validated by **Yash Agarwal**. Third-party attribution and provenance are
+> documented in [NOTICE.md](NOTICE.md), while data lineage and limitations are
+> documented in [DATA_PROVENANCE.md](DATA_PROVENANCE.md).
 
 > [!NOTE]
 > This is a research and demonstration prototype, not a certified public-warning
@@ -1053,9 +1052,8 @@ cd geo-shield && npm install && npm run build:win
 
 **Yash Agarwal** — B.Tech ECE (EC-ACT), JIIT, Batch 2027
 
-This major-project adaptation preserves the upstream Git history and credits the
-original GeoShield contributors in [NOTICE.md](NOTICE.md). New development and
-validation in this repository are maintained by Yash Agarwal.
+New development and validation in this major-project repository are maintained
+by Yash Agarwal. Required third-party attribution is retained in [NOTICE.md](NOTICE.md).
 
 ---
 
