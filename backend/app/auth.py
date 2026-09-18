@@ -5,7 +5,7 @@ Provides token creation, verification, and FastAPI dependency injection.
 import os
 import jwt
 import bcrypt
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
@@ -50,8 +50,8 @@ def create_token(user_data: dict) -> str:
         "sub": user_data["email"],
         "name": user_data["name"],
         "role": user_data["role"],
-        "iat": datetime.utcnow(),
-        "exp": datetime.utcnow() + timedelta(hours=JWT_EXPIRY_HOURS),
+        "iat": datetime.now(timezone.utc).replace(tzinfo=None),
+        "exp": datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(hours=JWT_EXPIRY_HOURS),
     }
     return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
 
