@@ -9,7 +9,6 @@ os.environ["RATE_LIMIT_ENABLED"] = "false"
 
 from fastapi.testclient import TestClient
 
-from app.auth import create_token
 from app.database import SessionLocal
 from app.main import app
 from app.models import Alert, RiskAssessment, SensorReading, SensorStation, UserAccount
@@ -19,14 +18,19 @@ client = TestClient(app)
 
 
 def _admin_headers() -> dict:
-    token = create_token(
-        {
-            "email": "operational-admin@test.invalid",
-            "name": "Operational Admin",
-            "role": "admin",
-        }
+    if os.getenv("APP_ENV", "demo").strip().lower() in {"prod", "production"}:
+        email = os.environ["GEOSHIELD_ADMIN_EMAIL"]
+        password = os.environ["GEOSHIELD_ADMIN_PASSWORD"]
+    else:
+        email = "admin@geoshield.gov.in"
+        password = "admin123"
+
+    response = client.post(
+        "/api/auth/login",
+        data={"email": email, "password": password},
     )
-    return {"Authorization": f"Bearer {token}"}
+    assert response.status_code == 200, response.text
+    return {"Authorization": f"Bearer {response.json()['token']}"}
 
 
 def test_readiness_checks_database():
