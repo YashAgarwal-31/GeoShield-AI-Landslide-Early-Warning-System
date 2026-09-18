@@ -1,41 +1,27 @@
-#!/bin/bash
-echo "🛡️  GeoShield - Starting Server..."
-echo "=================================="
+#!/usr/bin/env bash
+set -euo pipefail
 
-cd "$(dirname "$0")/backend"
+ROOT_DIR="$(cd "$(dirname "$0")" && pwd)"
+BACKEND_DIR="$ROOT_DIR/backend"
+HOST="${GEOSHIELD_HOST:-127.0.0.1}"
+PORT="${GEOSHIELD_PORT:-8000}"
 
-# Kill any existing server
-pkill -f "uvicorn app.main" 2>/dev/null
-sleep 1
+export APP_ENV="${APP_ENV:-demo}"
+export ENABLE_DEMO_USERS="${ENABLE_DEMO_USERS:-true}"
+export WEATHER_LIVE_ENABLED="${WEATHER_LIVE_ENABLED:-false}"
+export MODEL_TRAINING_ENABLED="${MODEL_TRAINING_ENABLED:-false}"
+export TRUST_PROXY_HEADERS="${TRUST_PROXY_HEADERS:-false}"
 
-# Start server
-echo "Starting backend on http://0.0.0.0:8000 ..."
-python3 -m uvicorn app.main:app --host 0.0.0.0 --port 8000 &
-SERVER_PID=$!
+if [ -x "$BACKEND_DIR/venv/bin/python" ]; then
+  PYTHON="$BACKEND_DIR/venv/bin/python"
+else
+  PYTHON="${PYTHON_BIN:-python3}"
+fi
 
-# Wait for server to be ready
-echo "Waiting for server to start (AI model training may take ~20s)..."
-for i in $(seq 1 30); do
-    sleep 2
-    if curl -s --connect-timeout 2 http://localhost:8000/api/health > /dev/null 2>&1; then
-        echo ""
-        echo "✅ Server is ready!"
-        echo "   🌐 Open http://localhost:8000 in your browser"
-        echo "   📊 API docs: http://localhost:8000/docs"
-        echo ""
-        echo "   Demo logins:"
-        echo "   - admin@geoshield.gov.in / admin123"
-        echo "   - field@geoshield.gov.in / field123"
-        echo "   - citizen@geoshield.gov.in / demo123"
-        echo ""
-        echo "   Press Ctrl+C to stop the server"
-        wait $SERVER_PID
-        exit 0
-    fi
-    echo -n "."
-done
+echo "GeoShield - starting local demo"
+echo "URL: http://$HOST:$PORT"
+echo "Live weather: $WEATHER_LIVE_ENABLED"
+echo "Model retraining: $MODEL_TRAINING_ENABLED"
 
-echo ""
-echo "❌ Server failed to start. Check the logs above."
-kill $SERVER_PID 2>/dev/null
-exit 1
+cd "$BACKEND_DIR"
+exec "$PYTHON" -m uvicorn app.main:app --host "$HOST" --port "$PORT"
