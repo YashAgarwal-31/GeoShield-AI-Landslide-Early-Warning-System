@@ -88,10 +88,23 @@ function LoginPage() {
   const clearServerUrl = () => {
     localStorage.removeItem('geoshield_server_url');
     setServerInput('');
-    setApiUrl('/api');
-    setNeedsServer(true);
-    setShowServerSettings(true);
-    setError('Server URL cleared. Please enter a new one above.');
+
+    const mobile = isMobileApp();
+    const pageIsHttp =
+      window.location.protocol === 'http:' ||
+      window.location.protocol === 'https:';
+
+    if (pageIsHttp && !mobile) {
+      setApiUrl('/api');
+      setNeedsServer(false);
+      setShowServerSettings(false);
+      setError('Custom server URL cleared. Using the same-origin backend.');
+    } else {
+      setApiUrl('http://localhost:8000/api');
+      setNeedsServer(true);
+      setShowServerSettings(true);
+      setError('Server URL cleared. Please enter a backend address.');
+    }
   };
 
   const detectServer = async () => {
@@ -179,15 +192,18 @@ function LoginPage() {
     }
   };
 
-  // Helper: get clean base URL like http://10.5.66.80:8000
+  // Resolve the same backend origin used by the normal API client.
   const getBaseUrl = (): string => {
-    let host = getServerUrl();
-    if (!host) return '';
-    // Strip any protocol prefix
-    host = host.replace(/^https?:\/\//, '').replace(/\/+$/, '');
-    // Ensure port present
-    if (!host.includes(':')) host += ':8000';
-    return `http://${host}`;
+    const saved = getServerUrl();
+    if (saved) return normalizeServerBase(saved);
+
+    const pageIsHttp =
+      window.location.protocol === 'http:' ||
+      window.location.protocol === 'https:';
+    if (pageIsHttp && !isMobileApp()) {
+      return window.location.origin;
+    }
+    return '';
   };
 
   // XMLHttpRequest bypasses WebView CORS restrictions that block fetch()
