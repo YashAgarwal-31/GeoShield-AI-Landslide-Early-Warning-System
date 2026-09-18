@@ -5,7 +5,7 @@ Provides chronological timeline view of all alerts for dashboard visualization.
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import desc, func, and_
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import List, Optional
 from pydantic import BaseModel
 
@@ -26,7 +26,7 @@ def get_alert_timeline(
     Get alerts as a chronological timeline for visualization.
     Groups alerts by hour and includes risk assessment context.
     """
-    since = datetime.utcnow() - timedelta(hours=hours)
+    since = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(hours=hours)
     
     query = db.query(Alert).filter(Alert.created_at >= since)
     if risk_level:
@@ -87,7 +87,7 @@ def get_alert_history(
     """
     Get daily alert counts for trend chart.
     """
-    since = datetime.utcnow() - timedelta(days=days)
+    since = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=days)
     alerts = db.query(Alert).filter(Alert.created_at >= since).all()
     
     daily = {}
