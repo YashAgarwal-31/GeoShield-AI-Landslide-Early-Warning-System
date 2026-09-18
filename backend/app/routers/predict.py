@@ -134,7 +134,8 @@ def predict_risk_at_location(req: PredictRequest, db: Session = Depends(get_db))
         },
         "model_info": {
             "type": f"{enhanced_result['source'].upper()} + RF+GB Ensemble",
-            "training_samples": "12,000 regional and realistically generated NER samples",
+            "training_samples": enhanced_result.get("training_samples", 0),
+            "training_source": enhanced_result.get("training_source", "unknown"),
             "features": 9,
             "terrain_enriched": True,
         },
