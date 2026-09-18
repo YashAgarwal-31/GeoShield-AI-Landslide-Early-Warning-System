@@ -12,6 +12,10 @@ let backendProcess;
 const BACKEND_PORT = 8000;
 const BACKEND_URL = `http://localhost:${BACKEND_PORT}`;
 
+if (process.env.GEOSHIELD_USER_DATA_DIR) {
+  app.setPath('userData', path.resolve(process.env.GEOSHIELD_USER_DATA_DIR));
+}
+
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1400,
@@ -56,7 +60,13 @@ function startBackend() {
   const modelCacheDir = path.join(dataDir, 'models');
   const reportUploadDir = path.join(dataDir, 'uploads', 'reports');
 
+  fs.mkdirSync(dataDir, { recursive: true });
+  const backendLogPath = path.join(dataDir, 'backend.log');
+  const backendLogStream = fs.createWriteStream(backendLogPath, { flags: 'a' });
+  backendLogStream.write(`\n[${new Date().toISOString()}] Starting GeoShield backend with ${pythonCmd}\n`);
+
   console.log('[GeoShield] Starting backend...');
+  console.log(`[GeoShield] Backend log: ${backendLogPath}`);
   backendProcess = spawn(pythonCmd, [
     '-m', 'uvicorn', 'app.main:app',
     '--host', '127.0.0.1',
@@ -86,14 +96,23 @@ function startBackend() {
   });
 
   backendProcess.stdout.on('data', (data) => {
+    backendLogStream.write(data);
     console.log(`[Backend] ${data.toString().trim()}`);
   });
 
   backendProcess.stderr.on('data', (data) => {
+    backendLogStream.write(data);
     console.log(`[Backend] ${data.toString().trim()}`);
   });
 
+  backendProcess.on('error', (error) => {
+    backendLogStream.write(`Backend spawn error: ${error.stack || error.message}\n`);
+    console.error('[GeoShield] Backend spawn error:', error);
+  });
+
   backendProcess.on('close', (code) => {
+    backendLogStream.write(`Backend exited with code ${code}\n`);
+    backendLogStream.end();
     console.log(`[GeoShield] Backend exited with code ${code}`);
   });
 }
