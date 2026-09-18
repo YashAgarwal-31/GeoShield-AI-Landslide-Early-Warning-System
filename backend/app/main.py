@@ -186,11 +186,6 @@ def health_check():
 
 @app.post("/api/auth/login")
 def login(email: str = Form(...), password: str = Form(...)):
-    if IS_PRODUCTION and not _env_bool("ENABLE_DEMO_USERS", False):
-        raise HTTPException(
-            status_code=503,
-            detail="Demo authentication is disabled in production.",
-        )
     user = authenticate_user(email, password)
     if not user:
         raise HTTPException(status_code=401, detail="Invalid email or password")
