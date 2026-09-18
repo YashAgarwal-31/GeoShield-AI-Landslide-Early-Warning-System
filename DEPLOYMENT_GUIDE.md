@@ -1,71 +1,120 @@
-# 🚀 GeoShield Deployment Guide
+# GeoShield Deployment Guide
 
-## Option 1: Railway (Recommended — Free Tier)
+The Docker image is the preferred production-equivalent deployment path because
+the same image is built and boot-smoke-tested in GitHub Actions.
 
-### Steps:
-1. Go to https://railway.app and sign up with GitHub
-2. Click **"New Project"** → **"Deploy from GitHub repo"**
-3. Select `officialarghya29/GeoShield`
-4. Railway will auto-detect the Dockerfile and build
-5. Set environment variable:
-   - Key: `PORT` → Value: `8000`
-6. Click **"Deploy"**
-7. Your app will be live at `https://your-app-name.up.railway.app`
+> GeoShield remains a research/demo prototype, not a certified public-warning
+> service.
 
-### Verify:
-```
-https://your-app-name.up.railway.app/api/health
+## 1. Local/offline presentation
+
+Windows:
+
+```bat
+prepare-demo.bat
+start-offline.bat
 ```
 
----
+Open `http://127.0.0.1:8000`.
 
-## Option 2: Render (Free Tier)
-
-### Steps:
-1. Go to https://render.com and sign up with GitHub
-2. Click **"New"** → **"Web Service"**
-3. Connect `officialarghya29/GeoShield`
-4. Configure:
-   - **Name:** geoshield
-   - **Runtime:** Python 3
-   - **Build Command:** `cd frontend && npm install && npm run build && cd ../backend && pip install -r requirements.txt`
-   - **Start Command:** `cd backend && python -m uvicorn app.main:app --host 0.0.0.0 --port $PORT`
-   - **Port:** 8000
-5. Click **"Create Web Service"**
-6. Your app will be live at `https://geoshield.onrender.com`
-
-### Verify:
-```
-https://geoshield.onrender.com/api/health
-```
-
----
-
-## Option 3: Local Demo (Easiest)
+Linux/macOS after installing dependencies and building the frontend:
 
 ```bash
-git clone https://github.com/officialarghya29/GeoShield.git
-cd GeoShield
-bash deploy.sh
-# Opens at http://localhost:8000
+./start.sh
 ```
 
----
+The local launchers default to localhost and keep live weather/model retraining
+off for deterministic demonstrations.
 
-## Option 4: Docker
+## 2. Docker
 
 ```bash
 docker build -t geoshield .
-docker run -p 8000:8000 geoshield
-# Opens at http://localhost:8000
 ```
 
----
+Production profile:
 
-## For SIH Demo Day
+```bash
+docker run --rm -p 127.0.0.1:8000:8000 \
+  -e APP_ENV=production \
+  -e JWT_SECRET="<32+ random characters>" \
+  -e ENABLE_DEMO_USERS=false \
+  -e GEOSHIELD_ADMIN_EMAIL="admin@example.com" \
+  -e GEOSHIELD_ADMIN_PASSWORD="<12+ character secret>" \
+  geoshield
+```
 
-**Recommended:** Deploy to Railway first, then use the public URL for your demo.
+The CI pipeline verifies that the production container starts and that health,
+dashboard, station, prediction, and configured-admin login flows respond.
 
-**Backup:** Have the local demo ready with `bash deploy.sh` in case of internet issues.
+## 3. Render
 
-**Slide Link:** Put the Railway/Render URL in your presentation slides.
+The repository includes `render.yaml` and uses the hardened Dockerfile.
+
+1. Create a Render Blueprint from
+   `YashAgarwal-31/GeoShield-AI-Landslide-Early-Warning-System`.
+2. Render generates `JWT_SECRET`.
+3. The Blueprint prompts for `GEOSHIELD_ADMIN_PASSWORD`; do not commit it.
+4. `GEOSHIELD_ADMIN_EMAIL` defaults to `admin@geoshield.local` in the
+   Blueprint and can be changed in the Render dashboard.
+5. Wait for `/api/health` to become healthy.
+6. Open the service URL and log in using the configured production admin.
+
+Built-in demo credentials remain disabled on this production profile.
+
+## 4. Railway
+
+The repository's `railway.json` selects the root Dockerfile.
+
+Create a project from the same GitHub repository and configure these variables in
+Railway before exposing the service:
+
+```text
+APP_ENV=production
+JWT_SECRET=<32+ random characters>
+ENABLE_DEMO_USERS=false
+GEOSHIELD_ADMIN_EMAIL=<your admin email>
+GEOSHIELD_ADMIN_PASSWORD=<12+ character secret>
+WEATHER_LIVE_ENABLED=false
+MODEL_TRAINING_ENABLED=false
+TRUST_PROXY_HEADERS=true
+```
+
+Railway should use the Dockerfile build defined by `railway.json`; do not use
+the old Nixpacks/manual frontend build commands.
+
+## Verification after deployment
+
+Check:
+
+```text
+GET /api/health
+GET /api/dashboard/stats
+GET /api/sensors/stations
+POST /api/predict
+POST /api/auth/login
+```
+
+Then verify through the UI:
+
+1. Production admin can log in.
+2. Dashboard loads.
+3. Map/prediction flow works.
+4. Stations and alerts pages load.
+5. No page presents cached/demo data as live sensor data.
+6. Privileged simulator/admin actions require authorization.
+
+## Security notes
+
+- Never deploy with the repository's demo passwords on a public endpoint.
+- Never commit `JWT_SECRET` or production administrator passwords.
+- Leave `MODEL_TRAINING_ENABLED=false` during normal operation.
+- Enable `TRUST_PROXY_HEADERS` only behind a trusted platform proxy.
+- Keep external-data source/freshness labels visible to users.
+
+## Recommended viva/demo setup
+
+For an academic presentation, the offline local path is more deterministic than
+depending on venue internet. Prepare once with `prepare-demo.bat`, test with
+Wi-Fi disconnected, and keep public deployment only as an optional secondary
+demo.
