@@ -1,177 +1,187 @@
-# GeoShield Build Guide
+# GeoShield Build & Verification Guide
+
+This guide reflects the post-Phase-4 stabilized repository. The **core verified
+runtime** is the FastAPI + React web application, including Docker and the
+repeatable offline presentation flow.
 
 ## Prerequisites
 
-| Tool | Version | Purpose |
-|---|---|---|
-| Python | 3.10+ | Backend runtime |
-| Node.js | 18+ | Frontend build |
-| npm | 9+ | Package manager |
-| Git | 2.30+ | Version control |
+| Tool | Recommended | Purpose |
+|---|---:|---|
+| Python | 3.12 | Backend, ML, tests |
+| Node.js | 22 | Frontend and Electron tooling |
+| npm | bundled with Node | Locked JS installs |
+| Git | current | Source control |
+| Docker | current | Production-equivalent verification |
 
-> **Note:** Python 3.10–3.14 are supported. Node.js 18–22 are supported.
+## Windows presentation workflow
 
----
+Run once while internet is available:
 
-## Quick Start (One Command)
-
-```bash
-bash deploy.sh    # Linux/Mac — creates venv, installs deps, builds, starts
-start.bat         # Windows — same flow
+```bat
+prepare-demo.bat
 ```
 
-`deploy.sh` automatically:
-1. Creates a Python virtual environment (`backend/venv/`)
-2. Installs all backend dependencies into it
-3. Runs `npm install` and `npm run build` for the frontend
-4. Starts the FastAPI server on port 8000
+This creates `backend\venv`, installs Python dependencies, performs a locked
+frontend install with `npm ci`, builds the production frontend, runs the full
+backend suite, and checks the cached data required for the demo.
 
----
+On presentation day:
 
-## Manual Setup
+```bat
+start-offline.bat
+```
 
-### Backend
+Open `http://127.0.0.1:8000`. The launcher binds only to localhost, disables
+live weather and model retraining, and uses cached/fallback data for the core
+flow.
+
+## Linux/macOS local setup
+
+```bash
+python3 -m venv backend/venv
+backend/venv/bin/python -m pip install --upgrade pip
+backend/venv/bin/python -m pip install -r backend/requirements.txt pytest
+
+cd frontend
+npm ci
+npm run build
+cd ..
+
+./start.sh
+```
+
+The safe default address is `http://127.0.0.1:8000`.
+
+## Manual development mode
+
+Backend:
 
 ```bash
 cd backend
-
-# Create virtual environment (REQUIRED — prevents system package conflicts)
 python3 -m venv venv
-
-# Activate it
-source venv/bin/activate        # Linux / macOS
-# .\venv\Scripts\activate      # Windows (PowerShell)
-# .\venv\Scripts\activate.bat  # Windows (cmd)
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Start server
-python -m uvicorn app.main:app --host 0.0.0.0 --port 8000
+source venv/bin/activate
+pip install -r requirements.txt pytest
+python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
 ```
 
-The backend will:
-1. Create SQLite database (`geoshield.db`)
-2. Seed 20 NER sensor stations
-3. Train AI model (first run: ~22s, cached after — `models/geoshield_model.pkl`)
-4. Serve API at `http://localhost:8000/api`
-
-### Frontend (Development)
+Frontend in another terminal:
 
 ```bash
 cd frontend
-
-# Install dependencies
-npm install
-
-# Start dev server (hot reload)
+npm ci
 npm run dev
 ```
 
-Frontend runs at `http://localhost:5173` with hot reload. The dev server proxies API requests to `http://localhost:8000`.
+Vite runs on `http://localhost:5173` and proxies API requests to the local
+backend.
 
-### Frontend (Production)
-
-```bash
-cd frontend
-
-# Build for production
-npm run build
-
-# Output in frontend/dist/ (served by FastAPI automatically)
-```
-
----
-
-## Docker
-
-```bash
-# Build image (Python 3.12 base, Node.js 22 installed automatically)
-docker build -t geoshield .
-
-# Run container
-docker run -p 8000:8000 geoshield
-
-# Or use Docker Compose (includes health checks, volume mounts)
-docker-compose up --build
-```
-
----
-
-## Environment Variables
-
-| Variable | Default | Description |
-|---|---|---|
-| `DATABASE_URL` | `sqlite:///./geoshield.db` | PostgreSQL URL for production |
-| `JWT_SECRET` | `geoshield-dev-secret-...` | JWT signing secret |
-| `TRAINING_DATA_PATH` | Auto-detected | AI training data CSV path |
-| `SATELLITE_DATA_PATH` | Auto-detected | Satellite data JSON path |
-
----
-
-## Android APK
-
-```bash
-cd frontend
-
-# Build frontend
-npm run build
-
-# Sync with Capacitor
-npx cap sync android
-
-# Build APK
-cd android
-./gradlew assembleDebug
-
-# Output: android/app/build/outputs/apk/debug/app-debug.apk
-```
-
-### Requirements
-- Android Studio (latest)
-- Android SDK 34
-- Java 17+
-
----
-
-## Windows/Linux Desktop (Electron)
-
-```bash
-cd frontend
-
-# Build frontend
-npm run build
-
-# Install Electron builder
-npm install electron-builder --save-dev
-
-# Build desktop app
-npx electron-builder --linux  # or --win for Windows
-```
-
----
-
-## Running Tests
+## Full verification
 
 ```bash
 cd backend
-
-# Activate venv first
-source venv/bin/activate
-
-# Run API tests (35 tests)
-python -m pytest tests/test_api.py -v
-
-# Run E2E tests (40 tests)
-python -m pytest tests/test_e2e.py -v
-
-# Run all tests
-python -m pytest tests/ -v
+python -m pytest tests -q
 ```
 
----
+The stabilized suite contains **100 test functions**. GitHub Actions additionally
+checks:
 
-## Demo Accounts
+- `pip check` and Python compilation
+- root Electron lockfile installation and JS syntax
+- root and frontend npm security audits
+- TypeScript + Vite production build
+- all backend tests
+- Docker image build
+- production-mode container startup
+- health, dashboard, station, prediction, and production-login smoke requests
+
+## Docker
+
+Local demo:
+
+```bash
+docker compose up --build
+```
+
+Docker Compose binds the service to `127.0.0.1:8000`.
+
+For a production-profile container, provide a strong JWT secret and a
+secret-managed administrator:
+
+```bash
+docker build -t geoshield .
+
+docker run --rm -p 127.0.0.1:8000:8000 \
+  -e APP_ENV=production \
+  -e JWT_SECRET="<32+ random characters>" \
+  -e ENABLE_DEMO_USERS=false \
+  -e GEOSHIELD_ADMIN_EMAIL="admin@example.com" \
+  -e GEOSHIELD_ADMIN_PASSWORD="<12+ character secret>" \
+  geoshield
+```
+
+Do not commit production passwords or JWT secrets.
+
+## Runtime configuration
+
+Important variables are documented in `.env.example`.
+
+| Variable | Purpose |
+|---|---|
+| `APP_ENV` | `demo` or `production` |
+| `JWT_SECRET` | JWT signing key; mandatory and >=32 chars in production |
+| `ENABLE_DEMO_USERS` | Enables built-in local demo accounts |
+| `GEOSHIELD_ADMIN_EMAIL` | Secret-managed production admin login |
+| `GEOSHIELD_ADMIN_PASSWORD` | Production admin password; >=12 chars |
+| `DATABASE_URL` | SQLite by default; can point to another SQLAlchemy DB |
+| `WEATHER_LIVE_ENABLED` | Optional live weather adapter |
+| `MODEL_TRAINING_ENABLED` | Explicit admin maintenance switch |
+| `TRUST_PROXY_HEADERS` | Trust forwarded client IP only behind a trusted proxy |
+| `MODEL_CACHE_DIR` | Writable model cache location for packaged runtimes |
+
+## Android wrapper
+
+The Android wrapper uses the bundled frontend. It **does not bundle the Python
+backend**; configure a reachable backend URL from the login/settings screen.
+
+Because generated Android platform files are intentionally not committed, a
+fresh checkout should run:
+
+```bash
+cd frontend
+npm ci
+npm run build
+npx cap add android
+npx cap sync android
+cd android
+./gradlew assembleDebug
+```
+
+Android Studio, the Android SDK, and a compatible JDK are required. The normal
+CI validates the shared TypeScript/Vite frontend, not a full APK build.
+
+## Electron desktop wrapper
+
+Build configuration and JavaScript syntax are CI-checked, and packaged resource
+paths use writable user-data locations for SQLite/model caches.
+
+```bash
+npm ci
+cd frontend && npm ci && npm run build && cd ..
+npm run build:linux
+# or on Windows:
+npm run build:win
+```
+
+The current Electron wrapper starts the bundled backend source using a compatible
+**system Python environment with GeoShield backend dependencies installed**.
+It is therefore an optional wrapper, not a self-contained Python runtime. For
+the most reproducible major-project demonstration, use `start-offline.bat` or
+Docker.
+
+## Local demo accounts
+
+Built-in credentials are enabled only when `ENABLE_DEMO_USERS=true`.
 
 | Email | Password | Role |
 |---|---|---|
@@ -180,25 +190,9 @@ python -m pytest tests/ -v
 | district@geoshield.gov.in | district123 | District Admin |
 | citizen@geoshield.gov.in | demo123 | Citizen |
 
----
-
-## API Endpoints (33+)
-
-| Category | Endpoints |
-|---|---|
-| Auth | `POST /api/auth/login` |
-| Dashboard | `GET /api/dashboard/stats`, `/risk-heatmap`, `/rainfall-trend`, `/risk-trend`, `/state-summary` |
-| Sensors | `GET /api/sensors/stations`, `/stations/{id}`, `/stations/{id}/history`, `/readings/latest` |
-| Alerts | `GET /api/alerts`, `/alerts/active`, `/alerts/stats`, `/alerts/timeline`, `/alerts/history` |
-| Reports | `GET /api/reports`, `POST /api/reports` |
-| Simulator | `POST /api/simulate/landslide`, `/simulate/batch`, `/simulate/reset` |
-| Satellite | `GET /api/satellite/data`, `/satellite/summary`, `/satellite/risk-zones` |
-| Weather | `GET /api/weather/{id}`, `/weather/{id}/forecast` |
-| Flood | `GET /api/flood/data`, `/flood/summary`, `/flood/correlation` |
-| Predict | `POST /api/predict` |
-| Export | `GET /api/export/geojson`, `/export/csv`, `/export/risk-zones` |
-| Health | `GET /api/health` |
+Do not expose these demo credentials on a public production deployment.
 
 ---
 
-*Last updated: 2026-08-28*
+See [PHASE4_GUIDE.md](PHASE4_GUIDE.md) for the presentation sequence and viva
+preparation.
