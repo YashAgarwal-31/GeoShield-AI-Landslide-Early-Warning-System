@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import desc, func
 from typing import Optional, List
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import json
 
 from app.database import get_db
@@ -68,7 +68,7 @@ def get_flood_data(
         "data": results,
         "total_districts": len(results),
         "data_source": "Asia Flood Atlas + IMD Historical Records",
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).replace(tzinfo=None).isoformat(),
     }
 
 
