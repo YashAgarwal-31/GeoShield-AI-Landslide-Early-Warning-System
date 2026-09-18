@@ -317,11 +317,11 @@ def seed_database():
             db.add(report)
 
         db.commit()
-        print("[Seed] ✅ Database seeded successfully with NER data!")
+        print("[Seed] Database seeded successfully with NER data.")
 
     except Exception as e:
         db.rollback()
-        print(f"[Seed] ❌ Error: {e}")
+        print(f"[Seed] Error: {e}")
         raise
     finally:
         db.close()
