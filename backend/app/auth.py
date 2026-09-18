@@ -74,13 +74,6 @@ def _build_user_store() -> dict:
             "role": "admin",
         }
 
-    if IS_PRODUCTION and not users:
-        raise RuntimeError(
-            "Production authentication is not configured. Set GEOSHIELD_ADMIN_EMAIL "
-            "and GEOSHIELD_ADMIN_PASSWORD, or explicitly enable demo users only for "
-            "a controlled non-public demonstration."
-        )
-
     return users
 
 
