@@ -5,9 +5,10 @@ const config: CapacitorConfig = {
   appName: 'GeoShield',
   webDir: 'dist',
   server: {
-    url: 'http://localhost:8000',
+    // Use the bundled Vite build in installed APKs. The backend address is
+    // configured from the login/settings screen instead of hard-coding
+    // localhost, which points to the Android device itself.
     cleartext: true,
-    allowNavigation: ['*'],
     androidScheme: 'http',
   },
   android: {
