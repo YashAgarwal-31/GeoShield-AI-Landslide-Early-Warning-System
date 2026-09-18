@@ -4,7 +4,7 @@ Backend API Server for Smart India Hackathon 2026
 """
 import os
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Form
@@ -181,7 +181,7 @@ app.include_router(ml_enhanced.router)
 @app.get("/health", response_class=JSONResponse)
 @app.get("/api/health", response_class=JSONResponse)
 def health_check():
-    return {"status": "healthy", "timestamp": datetime.utcnow().isoformat()}
+    return {"status": "healthy", "timestamp": datetime.now(timezone.utc).replace(tzinfo=None).isoformat()}
 
 
 @app.post("/api/auth/login")
