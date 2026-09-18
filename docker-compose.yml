@@ -1,25 +1,21 @@
-version: '3.8'
-
 services:
   geoshield:
     build:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "8000:8000"
+      # Local-demo safe default: do not expose the demo service to the LAN.
+      - "127.0.0.1:8000:8000"
     environment:
-      - DATABASE_URL=sqlite:///./geoshield.db
-      - PYTHONUNBUFFERED=1
+      APP_ENV: demo
+      DATABASE_URL: sqlite:////app/data/geoshield.db
+      WEATHER_LIVE_ENABLED: "false"
+      MODEL_TRAINING_ENABLED: "false"
+      TRUST_PROXY_HEADERS: "false"
+      ENABLE_DEMO_USERS: "true"
     volumes:
-      - ./datasets:/app/datasets:ro
-      - geoshield_data:/app/backend
+      - geoshield_data:/app/data
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 15s
 
 volumes:
   geoshield_data:
