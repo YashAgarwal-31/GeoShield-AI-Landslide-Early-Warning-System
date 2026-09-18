@@ -106,6 +106,7 @@ class CitizenReport(Base):
     reporter_name = Column(String, nullable=True)
     reporter_phone = Column(String, nullable=True)
     reporter_language = Column(String, default="en")
+    submitted_by = Column(String, nullable=True, index=True)
     status = Column(String, default="pending")  # pending, verified, dismissed
     verified_by = Column(String, nullable=True)
     attachment_filename = Column(String, nullable=True)
