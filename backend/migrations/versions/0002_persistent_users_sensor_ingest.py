@@ -44,7 +44,7 @@ def upgrade() -> None:
         sa.Column("name", sa.String(), nullable=False),
         sa.Column("password_hash", sa.String(), nullable=False),
         sa.Column("role", sa.String(), nullable=False, server_default="citizen"),
-        sa.Column("is_active", sa.Boolean(), nullable=False, server_default=sa.text("1")),
+        sa.Column("is_active", sa.Boolean(), nullable=False, server_default=sa.true()),
         sa.Column("created_at", sa.DateTime(), server_default=sa.func.now()),
         sa.Column("updated_at", sa.DateTime(), server_default=sa.func.now()),
         sa.Column("last_login_at", sa.DateTime(), nullable=True),
