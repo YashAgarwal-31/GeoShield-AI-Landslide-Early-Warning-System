@@ -1,6 +1,16 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { simulateLandslide, simulateBatch, resetSimulation, SimulationResult } from '../services/api';
+import {
+  simulateLandslide,
+  resetSimulation,
+  getDashboardStats,
+  getMLHealth,
+  getReadiness,
+  DashboardStats,
+  MLHealth,
+  ReadinessResponse,
+  SimulationResult,
+} from '../services/api';
 import { t } from '../i18n/translations';
 import {
   Play, RotateCcw, Zap, AlertTriangle, CheckCircle, ChevronRight,
@@ -23,6 +33,38 @@ export default function DemoFlow() {
   const [activeStep, setActiveStep] = useState(0);
   const [simResult, setSimResult] = useState<SimulationResult | null>(null);
   const [simLoading, setSimLoading] = useState(false);
+  const [runtimeStats, setRuntimeStats] = useState<DashboardStats | null>(null);
+  const [mlHealth, setMlHealth] = useState<MLHealth | null>(null);
+  const [readiness, setReadiness] = useState<ReadinessResponse | null>(null);
+  const [runtimeError, setRuntimeError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    const loadRuntimeVerification = async () => {
+      try {
+        const [dashboardResponse, mlResponse, readinessResponse] = await Promise.all([
+          getDashboardStats(),
+          getMLHealth(),
+          getReadiness(),
+        ]);
+        if (!active) return;
+        setRuntimeStats(dashboardResponse.data);
+        setMlHealth(mlResponse.data);
+        setReadiness(readinessResponse.data);
+        setRuntimeError(null);
+      } catch (error: any) {
+        if (!active) return;
+        setRuntimeError(
+          error.response?.data?.detail || 'Runtime verification data is unavailable.'
+        );
+      }
+    };
+
+    loadRuntimeVerification();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const handleRunDemo = async () => {
     setSimLoading(true);
@@ -172,24 +214,66 @@ export default function DemoFlow() {
         })}
       </div>
 
-      {/* Key Stats */}
+      {/* Runtime verification — values are loaded from the running backend. */}
       <div className="glass rounded-xl p-6">
-        <h3 className="text-sm font-bold text-white mb-4">{t('keyMetricsToHighlight')}</h3>
+        <h3 className="text-sm font-bold text-white mb-2">Runtime Verification</h3>
+        <p className="text-xs text-dark-400 mb-4">
+          These values come from the live application APIs; unsupported latency or accuracy claims are not shown here.
+        </p>
+        {runtimeError && (
+          <div className="mb-4 rounded-lg border border-red-600/30 bg-red-600/10 px-3 py-2 text-xs text-red-300">
+            {runtimeError}
+          </div>
+        )}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
-            { label: t('trainingSamples'), value: '12,000', sub: t('realNerTerrainData') },
-            { label: t('modelAccuracyLabel'), value: '79.4%', sub: t('rfGbEnsemble') },
-            { label: t('monitoredStations'), value: '20', sub: t('across8NerStates') },
-            { label: t('historicalEventsLabel'), value: '44', sub: '2011-2024 documented' },
-            { label: t('languagesLabel'), value: '4', sub: 'EN, HI, BN, AS' },
-            { label: t('apiEndpointsLabel'), value: '21', sub: 'All returning 200' },
-            { label: 'Satellite snapshot', value: '20 profiles', dataPoints: t('elevationSoilRainfall') || 'Elevation, soil, rainfall' },
-            { label: t('responseTimeLabel'), value: '<50ms', sub: t('p95ApiLatency') },
+            {
+              label: 'System readiness',
+              value: readiness?.status?.toUpperCase() || 'CHECKING',
+              sub: readiness ? `DB: ${readiness.database}` : 'Backend status',
+            },
+            {
+              label: 'ML runtime',
+              value: mlHealth?.model_loaded ? 'XGBOOST' : 'FALLBACK',
+              sub: mlHealth?.training_source || 'Checking model',
+            },
+            {
+              label: t('trainingSamples'),
+              value: mlHealth ? mlHealth.training_samples.toLocaleString() : '—',
+              sub: mlHealth?.training_source || 'Runtime provenance',
+            },
+            {
+              label: t('monitoredStations'),
+              value: runtimeStats ? runtimeStats.total_stations.toString() : '—',
+              sub: runtimeStats ? `${runtimeStats.active_stations} active` : 'Runtime database',
+            },
+            {
+              label: 'Active alerts',
+              value: runtimeStats ? runtimeStats.active_alerts.toString() : '—',
+              sub: 'Persistent alert workflow',
+            },
+            {
+              label: 'Pending reports',
+              value: runtimeStats ? runtimeStats.pending_reports.toString() : '—',
+              sub: 'Citizen evidence queue',
+            },
+            {
+              label: 'ML data',
+              value: readiness?.ml_training_data || 'CHECKING',
+              sub: readiness?.synthetic_model_fallback
+                ? 'Synthetic fallback allowed in this profile'
+                : 'Synthetic fallback disabled',
+            },
+            {
+              label: t('languagesLabel'),
+              value: '4',
+              sub: 'EN, HI, BN, AS',
+            },
           ].map((stat, i) => (
             <div key={i} className="text-center p-3 bg-dark-800/50 rounded-lg">
-              <p className="text-xl font-bold text-white">{stat.value}</p>
+              <p className="text-xl font-bold text-white break-words">{stat.value}</p>
               <p className="text-xs text-green-400 font-medium">{stat.label}</p>
-              <p className="text-[10px] text-dark-500">{stat.sub}</p>
+              <p className="text-[10px] text-dark-500 break-words">{stat.sub}</p>
             </div>
           ))}
         </div>
@@ -200,14 +284,14 @@ export default function DemoFlow() {
         <h3 className="text-sm font-bold text-white mb-4">{t('technologyStack')}</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {[
-            { layer: t('techBackend'), tech: 'FastAPI + SQLite + SQLAlchemy' },
+            { layer: t('techBackend'), tech: 'FastAPI + SQLAlchemy + Alembic' },
             { layer: 'AI/ML', tech: 'Random Forest + Gradient Boosting' },
             { layer: t('techFrontend'), tech: 'React + Tailwind + Leaflet.js' },
             { layer: t('techCharts'), tech: 'Recharts (6 chart types)' },
             { layer: t('techAuth'), tech: 'JWT + bcrypt + RBAC' },
             { layer: t('languagesLabel'), tech: '4 languages (EN/HI/BN/AS)' },
-            { layer: t('techDatabase'), tech: 'SQLite + Alembic migrations' },
-            { layer: t('techSatellite'), tech: 'Open-Meteo API (real data)' },
+            { layer: t('techDatabase'), tech: 'PostgreSQL / SQLite + Alembic' },
+            { layer: t('techSatellite'), tech: 'Cached satellite snapshot + optional live weather' },
           ].map((item, i) => (
             <div key={i} className="p-3 bg-dark-800/50 rounded-lg">
               <p className="text-xs text-green-400 font-medium">{item.layer}</p>
