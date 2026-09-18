@@ -11,6 +11,10 @@ services:
         generateValue: true
       - key: ENABLE_DEMO_USERS
         value: "false"
+      - key: GEOSHIELD_ADMIN_EMAIL
+        value: admin@geoshield.local
+      - key: GEOSHIELD_ADMIN_PASSWORD
+        sync: false
       - key: WEATHER_LIVE_ENABLED
         value: "false"
       - key: MODEL_TRAINING_ENABLED
