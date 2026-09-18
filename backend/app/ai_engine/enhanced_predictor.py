@@ -31,6 +31,28 @@ except ImportError:
 
 from app.ai_engine.terrain_lookup import terrain_lookup
 
+
+def _env_bool(name: str, default: bool = False) -> bool:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _synthetic_fallback_allowed() -> bool:
+    app_env = os.getenv("APP_ENV", "demo").strip().lower()
+    production = app_env in {"prod", "production"}
+    return _env_bool("ALLOW_SYNTHETIC_MODEL_FALLBACK", default=not production)
+
+
+TRAINING_DATA_PATH = os.getenv(
+    "TRAINING_DATA_PATH",
+    os.path.join(
+        os.path.dirname(__file__), "..", "..", "..",
+        "datasets", "processed", "real_ner_training_data.csv"
+    ),
+)
+
 MODEL_DIR = os.getenv(
     "MODEL_CACHE_DIR",
     os.path.join(os.path.dirname(__file__), "models"),
@@ -47,12 +69,18 @@ class EnhancedLandslidePredictor:
         self.label_encoder = None
         self.scaler = None
         self.model_loaded = False
+        self.training_source = "unknown"
         self.feature_names = [
             "latitude", "longitude", "slope", "aspect", "elevation",
             "rainfall_7day", "ndvi", "soil_moisture", "distance_to_road"
         ]
         os.makedirs(MODEL_DIR, exist_ok=True)
         self._try_load_model()
+        if not HAS_ML and not _synthetic_fallback_allowed():
+            raise RuntimeError(
+                "GeoShield enhanced ML dependencies are unavailable and rule-based "
+                "fallback is disabled for this operational runtime."
+            )
         if not self.model_loaded and HAS_ML:
             print("[Enhanced Predictor] No cached model found, training on startup...")
             self.train()
@@ -69,6 +97,7 @@ class EnhancedLandslidePredictor:
                     self.model = cached.get("model")
                     self.scaler = cached.get("scaler")
                     self.label_encoder = cached.get("encoder")
+                    self.training_source = cached.get("training_source", "unknown")
                 else:
                     self.model = cached
                 if os.path.exists(ENCODER_PATH):
@@ -83,20 +112,27 @@ class EnhancedLandslidePredictor:
         if not HAS_ML:
             return {"error": "scikit-learn/xgboost not installed"}
 
-        if csv_path and os.path.exists(csv_path):
-            df = pd.read_csv(csv_path)
-        else:
-            # Try the repository's mixed-provenance NER table.
-            ner_path = os.path.join(
-                os.path.dirname(__file__), "..", "..", "..",
-                "datasets", "processed", "real_ner_training_data.csv"
+        selected_path = csv_path or TRAINING_DATA_PATH
+        if selected_path and os.path.exists(selected_path):
+            df = pd.read_csv(selected_path)
+            self.training_source = (
+                "controlled_training_file" if csv_path else "mixed_provenance_dataset"
             )
-            if os.path.exists(ner_path):
-                df = pd.read_csv(ner_path)
-                print(f"[Enhanced Predictor] Loaded mixed-provenance NER data: {len(df)} samples")
-            else:
-                # Generate synthetic data
-                df = self._generate_demo_data(2000)
+            print(
+                f"[Enhanced Predictor] Loaded {self.training_source}: "
+                f"{len(df)} samples"
+            )
+        else:
+            if not _synthetic_fallback_allowed():
+                raise RuntimeError(
+                    "GeoShield enhanced ML training data is unavailable and "
+                    "synthetic fallback is disabled for this runtime. Restore "
+                    "datasets/processed/real_ner_training_data.csv or configure "
+                    "TRAINING_DATA_PATH explicitly."
+                )
+            self.training_source = "synthetic_demo_fallback"
+            df = self._generate_demo_data(2000)
+            print("[Enhanced Predictor] Using explicit synthetic demo training fallback")
 
         return self._train_on_dataframe(df)
 
@@ -181,6 +217,7 @@ class EnhancedLandslidePredictor:
             "model": self.model,
             "scaler": self.scaler,
             "encoder": self.label_encoder,
+            "training_source": self.training_source,
         }, MODEL_PATH)
         self.model_loaded = True
 
@@ -193,6 +230,7 @@ class EnhancedLandslidePredictor:
             "training_samples": len(X_train),
             "test_samples": len(X_test),
             "features": self.feature_names,
+            "training_source": self.training_source,
         }
 
     def predict(self, lat: float, lng: float, provided_features: Dict = None) -> Dict:
