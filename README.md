@@ -4,17 +4,17 @@
 
 # 🛡️ GeoShield
 
-### AI-Based Early Warning & Landslide Risk Monitoring System
-**North Eastern Region, India — Smart India Hackathon 2026**
+### AI-Based Landslide Risk Monitoring & Early-Warning Software Platform
+**Final-Year Major Project — AI/ML + Communication Engineering | North Eastern Region, India**
 
-![SIH 2026](https://img.shields.io/badge/SIH-2026-green?style=for-the-badge)
-![Problem ID](https://img.shields.io/badge/Problem_ID-26001-blue?style=for-the-badge)
+![Major Project](https://img.shields.io/badge/Final_Year-Major_Project-green?style=for-the-badge)
+![Operational Core](https://img.shields.io/badge/Operational_Core-Sensor_Ingestion-blue?style=for-the-badge)
 ![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=for-the-badge&logo=python&logoColor=white)
 ![React](https://img.shields.io/badge/React-18-61DAFB?style=for-the-badge&logo=react&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?style=for-the-badge&logo=fastapi&logoColor=white)
 ![AI/ML](https://img.shields.io/badge/AI/ML-Random_Forest-orange?style=for-the-badge)
 
-**Ministry of Development of North Eastern Region (MDoNER)**
+**Operational software build with persistent data, authenticated gateway ingestion, ML inference, GIS monitoring, and alert workflows**
 
 </div>
 
@@ -27,10 +27,14 @@
 > documented in [DATA_PROVENANCE.md](DATA_PROVENANCE.md).
 
 > [!NOTE]
-> This is a research and demonstration prototype, not a certified public-warning
-> system. The current build combines historical/regional inputs with seeded,
-> simulated, and realistically generated samples; it does not ingest a live
-> physical sensor network by default.
+> GeoShield is a fully integrated **major-project software platform** with persistent
+> users/stations, SQLite and PostgreSQL support, authenticated external sensor/gateway
+> ingestion, ML risk inference, alert persistence, GIS dashboards, and production-style
+> Docker verification. Physical sensors are not bundled with the repository, and field
+> landslide-warning accuracy still requires calibrated hardware and prospective validation.
+>
+> For the complete operational setup and real gateway flow, see
+> **[OPERATIONAL_GUIDE.md](OPERATIONAL_GUIDE.md)**.
 
 ---
 
@@ -159,9 +163,9 @@ GeoShield is a **full-stack AI-powered landslide monitoring prototype** designed
 
 | # | Capability | Description | Technology |
 |---|------------|-------------|------------|
-| 1 | **Monitoring Dashboard** | 20 seeded station profiles across 8 NER states with rainfall, soil moisture, ground displacement, tilt, and pore pressure fields | FastAPI + SQLite |
+| 1 | **Operational Monitoring** | Persistent stations plus authenticated sensor/gateway readings with source provenance, idempotency, readiness checks, and admin provisioning | FastAPI + PostgreSQL/SQLite |
 | 2 | **AI Risk Prediction** | Experimental RF+GB VotingClassifier trained on regional and realistically generated terrain samples; independent validation is planned | scikit-learn |
-| 3 | **Warning Workflow** | Multi-level alert framework (Low → Moderate → High → Critical); external SMS/push delivery is planned | WebSocket + REST |
+| 3 | **Warning Workflow** | Sensor observation → persistent reading → ML assessment → severity decision → persistent alert, with RBAC-controlled acknowledgement/resolution | REST + JWT/RBAC |
 | 4 | **GIS Risk Mapping** | Interactive Leaflet.js heatmaps showing the prototype risk distribution, road status, village locations, and station profiles | Leaflet.js |
 | 5 | **Citizen Reporting** | Geo-tagged photo/video reporting workflow for field officers and local residents | React + FastAPI |
 | 6 | **Multilingual UI** | Full interface translation in English, Hindi, Bengali, and Assamese covering all 90+ UI strings | i18n system |
@@ -927,7 +931,7 @@ The offline launcher disables live weather and model retraining, uses the prepar
 | **HTTP** | Axios | 1.x | API client |
 | **Mobile** | Capacitor | 6.x + Status Bar | Android wrapper, futuristic splash |
 | **Desktop** | Electron | 44.x | Windows/Linux, auto-starts backend |
-| **Testing** | pytest + TestClient + GitHub Actions | — | 100-test stabilized suite + audits/build/Docker runtime smoke CI |
+| **Testing** | pytest + TestClient + GitHub Actions | — | 105-test operational suite + audits/build/Docker/PostgreSQL CI |
 
 ---
 
@@ -939,9 +943,9 @@ The offline launcher disables live weather and model retraining, uses the prepar
 |------|------------------------|
 | **Backend** | FastAPI application starts and the health, dashboard, and prediction flows respond |
 | **Frontend** | React 18 + TypeScript production build completes |
-| **Automated tests** | 100 backend test functions pass in GitHub Actions, including Phase 4 security/config and post-Phase-4 stabilization regressions |
+| **Automated tests** | 105 backend test functions cover the stabilized baseline plus persistent auth, station provisioning, readiness, sensor ingestion, idempotency, and security regressions |
 | **Security checks** | `pip check`, root/frontend npm audits, TypeScript/Vite build, Docker build, and production-container API/login smoke checks pass in CI |
-| **Demonstration data** | 20 seeded station profiles across 8 NER states, plus cached, historical, and generated inputs |
+| **Input modes** | Authenticated external sensor/gateway readings, optional seeded reference history, controlled simulation, and cached/live external-data adapters |
 | **ML status** | District-grouped prototype evaluation is reproducible; independent field validation remains future work |
 | **Source transparency** | Weather/satellite APIs and UI expose live, cached, fallback, stale, and unavailable states |
 
@@ -957,15 +961,16 @@ claimed by the current prototype.
 
 ## ✅ Test Results
 
-### Latest Clean Verification: 100/100 PASSED
+### Operational Regression Suite: 105 tests
 
 ```
-Backend:   100 passed
-Frontend:  TypeScript + Vite production build passed
-npm audit: root + frontend report 0 vulnerabilities
-pip check: No broken requirements found
-Docker:    production image build + runtime smoke passed
-Runtime:   health + dashboard + stations + prediction + production login smoke passed
+Backend:   105-test operational regression suite
+Frontend:  TypeScript + Vite production build
+npm audit: root + frontend high-severity gates
+pip check: dependency consistency check
+Docker:    clean production image + database-readiness smoke
+Postgres:  fresh Alembic migrations + operational-core integration tests
+Runtime:   dashboard + stations + prediction + persistent login + sensor-ingestion paths
 ```
 
 ### Key Test Results
