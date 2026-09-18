@@ -65,7 +65,27 @@ def test_persistent_user_can_be_created_and_authenticated():
     )
     assert login_response.status_code == 200, login_response.text
     assert login_response.json()["user"]["role"] == "field_officer"
-    issued_token = login_response.json()["token"]
+
+    new_password = "StrongerPass456!"
+    reset_response = client.put(
+        f"/api/users/{user_id}/password",
+        json={"password": new_password},
+        headers=_admin_headers(),
+    )
+    assert reset_response.status_code == 200, reset_response.text
+
+    old_password_login = client.post(
+        "/api/auth/login",
+        data={"email": email, "password": password},
+    )
+    assert old_password_login.status_code == 401
+
+    new_password_login = client.post(
+        "/api/auth/login",
+        data={"email": email, "password": new_password},
+    )
+    assert new_password_login.status_code == 200, new_password_login.text
+    issued_token = new_password_login.json()["token"]
 
     disable_response = client.put(
         f"/api/users/{user_id}/status",
