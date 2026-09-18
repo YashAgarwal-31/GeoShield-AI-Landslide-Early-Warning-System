@@ -98,6 +98,7 @@ def _run_simulation(
         tilt_angle_y=round(random.uniform(-params["tilt"], params["tilt"]), 2),
         pore_water_pressure=round(min(100, rainfall * 0.6 + random.uniform(5, 15)), 1),
         vibration_level=round(random.uniform(15, 40), 1),
+        source="simulation",
         timestamp=datetime.now(timezone.utc).replace(tzinfo=None),
     )
     db.add(reading)
@@ -307,11 +308,17 @@ def reset_simulations(
         .filter(RiskAssessment.model_version == "v1.0-sim")
         .delete(synchronize_session=False)
     )
+    deleted_readings = (
+        db.query(SensorReading)
+        .filter(SensorReading.source == "simulation")
+        .delete(synchronize_session=False)
+    )
     db.commit()
 
     return {
         "status": "success",
-        "message": "Simulator-tagged alerts and assessments cleared; sensor readings retained.",
+        "message": "Simulator-tagged alerts, assessments, and readings cleared.",
         "deleted_alerts": deleted_alerts,
         "deleted_assessments": deleted_assessments,
+        "deleted_readings": deleted_readings,
     }
