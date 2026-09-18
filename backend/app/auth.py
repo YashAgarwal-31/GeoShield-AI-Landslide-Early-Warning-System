@@ -29,14 +29,19 @@ except ValueError:
     JWT_EXPIRY_HOURS = 24
 
 
-def _hash_password(password: str) -> str:
+def hash_password(password: str) -> str:
     """Hash a password using bcrypt."""
-    return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+    return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
 
 
-def _verify_password(password: str, hashed: str) -> bool:
+def verify_password(password: str, hashed: str) -> bool:
     """Verify a password against a bcrypt hash."""
-    return bcrypt.checkpw(password.encode('utf-8'), hashed.encode('utf-8'))
+    return bcrypt.checkpw(password.encode("utf-8"), hashed.encode("utf-8"))
+
+
+# Backward-compatible private aliases used by existing code/tests.
+_hash_password = hash_password
+_verify_password = verify_password
 
 security = HTTPBearer(auto_error=False)
 
@@ -82,17 +87,62 @@ def _build_user_store() -> dict:
 AUTH_USERS = _build_user_store()
 
 
-def authenticate_user(email: str, password: str) -> dict | None:
-    """Authenticate against the configured local/demo credential store."""
+def authenticate_user(email: str, password: str, db=None) -> dict | None:
+    """Authenticate a persistent database user first, then configured bootstrap/demo users."""
     normalized_email = email.strip().lower()
+
+    if db is not None:
+        from app.models import UserAccount
+
+        account = (
+            db.query(UserAccount)
+            .filter(UserAccount.email == normalized_email)
+            .first()
+        )
+        if account is not None:
+            if not account.is_active or not verify_password(password, account.password_hash):
+                return None
+
+            account.last_login_at = datetime.now(timezone.utc).replace(tzinfo=None)
+            db.commit()
+            return {
+                "email": account.email,
+                "name": account.name,
+                "role": account.role,
+            }
+
     user = AUTH_USERS.get(normalized_email)
-    if user and _verify_password(password, user["password_hash"]):
+    if user and verify_password(password, user["password_hash"]):
         return {
             "email": normalized_email,
             "name": user["name"],
             "role": user["role"],
         }
     return None
+
+
+def ensure_bootstrap_admin(db) -> None:
+    """Persist the configured production/bootstrap administrator if one is supplied."""
+    admin_email = os.getenv("GEOSHIELD_ADMIN_EMAIL", "").strip().lower()
+    admin_password = os.getenv("GEOSHIELD_ADMIN_PASSWORD", "")
+    if not admin_email or not admin_password:
+        return
+
+    from app.models import UserAccount
+
+    account = db.query(UserAccount).filter(UserAccount.email == admin_email).first()
+    if account is None:
+        db.add(
+            UserAccount(
+                email=admin_email,
+                name=os.getenv("GEOSHIELD_ADMIN_NAME", "GeoShield Admin").strip()
+                or "GeoShield Admin",
+                password_hash=hash_password(admin_password),
+                role="admin",
+                is_active=True,
+            )
+        )
+        db.commit()
 
 
 def create_token(user_data: dict) -> str:
