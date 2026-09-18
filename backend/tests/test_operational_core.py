@@ -6,7 +6,7 @@ from fastapi.testclient import TestClient
 from app.auth import create_token
 from app.database import SessionLocal
 from app.main import app
-from app.models import Alert, RiskAssessment, SensorReading, UserAccount
+from app.models import Alert, RiskAssessment, SensorReading, SensorStation, UserAccount
 
 
 client = TestClient(app)
@@ -75,6 +75,58 @@ def test_persistent_user_can_be_created_and_authenticated():
         if account:
             db.delete(account)
             db.commit()
+    finally:
+        db.close()
+
+
+
+
+def test_admin_can_provision_and_update_station():
+    station_id = "NER-901"
+    db = SessionLocal()
+    try:
+        existing = db.query(SensorStation).filter(SensorStation.station_id == station_id).first()
+        if existing:
+            db.delete(existing)
+            db.commit()
+    finally:
+        db.close()
+
+    created = client.post(
+        "/api/sensors/stations",
+        json={
+            "station_id": station_id,
+            "name": "Operational Test Station",
+            "latitude": 25.6,
+            "longitude": 91.9,
+            "state": "Meghalaya",
+            "district": "East Khasi Hills",
+            "village": "Test Village",
+            "elevation": 1200,
+            "slope_angle": 32,
+            "soil_type": "loamy",
+            "vegetation_cover": 55,
+        },
+        headers=_admin_headers(),
+    )
+    assert created.status_code == 201, created.text
+    assert created.json()["station_id"] == station_id
+
+    updated = client.put(
+        f"/api/sensors/stations/{station_id}",
+        json={"slope_angle": 36, "is_active": False},
+        headers=_admin_headers(),
+    )
+    assert updated.status_code == 200, updated.text
+    assert updated.json()["is_active"] is False
+
+    db = SessionLocal()
+    try:
+        station = db.query(SensorStation).filter(SensorStation.station_id == station_id).first()
+        assert station is not None
+        assert station.slope_angle == 36
+        db.delete(station)
+        db.commit()
     finally:
         db.close()
 
