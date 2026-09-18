@@ -25,7 +25,7 @@ def _env_bool(name: str, default: bool = False) -> bool:
 def _require_sensor_key(
     sensor_key: str | None = Header(default=None, alias="X-GeoShield-Sensor-Key"),
 ) -> None:
-    if not _env_bool("SENSOR_INGEST_ENABLED", True):
+    if not _env_bool("SENSOR_INGEST_ENABLED", False):
         raise HTTPException(status_code=503, detail="Sensor ingestion is disabled")
 
     expected = os.getenv("SENSOR_INGEST_API_KEY", "")
