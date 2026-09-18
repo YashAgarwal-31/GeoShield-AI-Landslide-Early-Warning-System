@@ -91,6 +91,37 @@ class LoginRequest(BaseModel):
     password: str = Field(..., min_length=4, max_length=128, description="Password")
 
 
+class UserCreateRequest(BaseModel):
+    email: str = Field(..., pattern=r"^[^@]+@[^@]+\.[^@]+$")
+    name: str = Field(..., min_length=2, max_length=100)
+    password: str = Field(..., min_length=8, max_length=128)
+    role: str = Field(default="citizen", pattern=r"^(admin|field_officer|district_admin|citizen)$")
+
+
+class UserStatusRequest(BaseModel):
+    is_active: bool
+
+
+class UserPasswordRequest(BaseModel):
+    password: str = Field(..., min_length=8, max_length=128)
+
+
+class SensorReadingIngestRequest(BaseModel):
+    external_id: Optional[str] = Field(None, min_length=3, max_length=128)
+    rainfall_mm: float = Field(default=0, ge=0, le=1000)
+    soil_moisture: float = Field(default=0, ge=0, le=100)
+    soil_temperature: float = Field(default=0, ge=-30, le=80)
+    ground_displacement: float = Field(default=0, ge=0, le=1000)
+    tilt_angle_x: float = Field(default=0, ge=-90, le=90)
+    tilt_angle_y: float = Field(default=0, ge=-90, le=90)
+    pore_water_pressure: float = Field(default=0, ge=0, le=5000)
+    vibration_level: float = Field(default=0, ge=0, le=10000)
+    observed_at: Optional[str] = Field(
+        None,
+        description="Optional ISO-8601 observation timestamp; server time is used when omitted.",
+    )
+
+
 # ── Response wrappers ─────────────────────────────────────────
 class PredictResponse(BaseModel):
     location: dict
