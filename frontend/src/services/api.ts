@@ -15,9 +15,18 @@ const isElectron = () => {
 const isMobile = () => {
   try {
     if (typeof window === 'undefined') return false;
-    return typeof (window as any).Capacitor !== 'undefined' ||
+
+    const capacitor = (window as any).Capacitor;
+    const capacitorNative =
+      typeof capacitor?.isNativePlatform === 'function'
+        ? Boolean(capacitor.isNativePlatform())
+        : typeof capacitor?.getPlatform === 'function'
+          ? capacitor.getPlatform() !== 'web'
+          : false;
+
+    return capacitorNative ||
            typeof (window as any).cordova !== 'undefined' ||
-           /file:\/\//.test(window.location.href);
+           window.location.protocol === 'file:';
   } catch { return false; }
 };
 
