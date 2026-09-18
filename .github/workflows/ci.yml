@@ -12,7 +12,7 @@ permissions:
 jobs:
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     env:
       APP_ENV: demo
       WEATHER_LIVE_ENABLED: "false"
@@ -35,7 +35,9 @@ jobs:
         with:
           node-version: "22"
           cache: npm
-          cache-dependency-path: frontend/package-lock.json
+          cache-dependency-path: |
+            package-lock.json
+            frontend/package-lock.json
 
       - name: Install backend
         working-directory: backend
@@ -44,6 +46,13 @@ jobs:
           pip install -r requirements.txt
           pip install pytest
           pip check
+          python -m compileall -q app
+
+      - name: Verify desktop lockfile and JavaScript
+        run: |
+          npm ci --ignore-scripts
+          npm run verify:desktop
+          npm audit --audit-level=high
 
       - name: Install frontend
         working-directory: frontend
@@ -63,3 +72,31 @@ jobs:
 
       - name: Docker build
         run: docker build -t geoshield:ci .
+
+      - name: Production container smoke test
+        shell: bash
+        run: |
+          set -euo pipefail
+          JWT_SECRET_VALUE="$(python -c 'import secrets; print(secrets.token_hex(32))')"
+          docker run -d --name geoshield-ci             -p 127.0.0.1:8000:8000             -e APP_ENV=production             -e JWT_SECRET="$JWT_SECRET_VALUE"             -e ENABLE_DEMO_USERS=false             -e WEATHER_LIVE_ENABLED=false             -e MODEL_TRAINING_ENABLED=false             geoshield:ci
+
+          cleanup() {
+            docker logs geoshield-ci || true
+            docker rm -f geoshield-ci >/dev/null 2>&1 || true
+          }
+          trap cleanup EXIT
+
+          for attempt in {1..45}; do
+            if curl --fail --silent http://127.0.0.1:8000/api/health >/dev/null; then
+              break
+            fi
+            if [ "$attempt" -eq 45 ]; then
+              echo "GeoShield container did not become healthy"
+              exit 1
+            fi
+            sleep 2
+          done
+
+          curl --fail --silent http://127.0.0.1:8000/api/dashboard/stats >/dev/null
+          curl --fail --silent http://127.0.0.1:8000/api/sensors/stations >/dev/null
+          curl --fail --silent             -H 'Content-Type: application/json'             -d '{"latitude":25.58,"longitude":91.89}'             http://127.0.0.1:8000/api/predict >/dev/null
