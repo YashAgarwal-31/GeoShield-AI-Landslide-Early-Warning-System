@@ -901,6 +901,24 @@ GeoShield/
 
 ---
 
+## 🎓 Phase 4 Presentation & Offline Demo
+
+For final-year presentation preparation, deployment notes, the recommended live-demo sequence, safe claims, and **32 viva questions with answers**, see [PHASE4_GUIDE.md](PHASE4_GUIDE.md).
+
+For a repeatable Windows demo:
+
+```bat
+REM Run once while internet is available
+prepare-demo.bat
+
+REM Presentation-day launcher; core flow works without internet
+start-offline.bat
+```
+
+The offline launcher disables live weather and model retraining, uses the prepared frontend/cached data, and binds FastAPI only to `127.0.0.1:8000`.
+
+---
+
 ## 🛠️ Tech Stack
 
 | Layer | Technology | Version | Purpose |
@@ -1044,7 +1062,7 @@ cd geo-shield && npm install && npm run build:win
 | **Phase 1** | ✅ Done | Baseline audit, dependency correction, risk-guidance consistency fix, provenance policy, verified backend/frontend baseline |
 | **Phase 2** | ✅ Done | Dataset audit, provenance manifest, checksum-bound report, district-grouped ML evaluation, imbalance-aware metrics, regression tests |
 | **Phase 3** | ✅ Done | Optional live weather adapter, timeout and TTL cache, seeded fallback, satellite snapshot reload, timestamps, freshness, source badges, regression tests |
-| **Phase 4** | Next | Production configuration/security hardening, deployment checks, offline demo, presentation, and viva material |
+| **Phase 4** | ✅ Done | Production-safe configuration, restricted privileged operations, hardened Docker/Render deployment, CI verification, repeatable offline demo scripts, and presentation/viva guide |
 
 ---
 
