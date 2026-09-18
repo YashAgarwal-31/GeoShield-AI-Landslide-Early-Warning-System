@@ -937,7 +937,7 @@ The offline launcher disables live weather and model retraining, uses the prepar
 | **HTTP** | Axios | 1.x | API client |
 | **Mobile** | Capacitor | 6.x + Status Bar | Android wrapper, futuristic splash |
 | **Desktop** | Electron | 44.x | Windows/Linux, auto-starts backend |
-| **Testing** | pytest + TestClient | — | 90 tests in the verified Phase 3 suite |
+| **Testing** | pytest + TestClient + GitHub Actions | — | 97-test Phase 4 regression suite + build/audit/Docker CI |
 
 ---
 
@@ -949,8 +949,8 @@ The offline launcher disables live weather and model retraining, uses the prepar
 |------|------------------------|
 | **Backend** | FastAPI application starts and the health, dashboard, and prediction flows respond |
 | **Frontend** | React 18 + TypeScript production build completes |
-| **Automated tests** | 90 backend tests pass in a clean Phase 3 environment |
-| **Security checks** | Dependency checks pass; npm reports no known vulnerabilities in the audited install |
+| **Automated tests** | 97 backend test functions pass in GitHub Actions, including 7 Phase 4 security/config regressions |
+| **Security checks** | `pip check`, frontend `npm audit --audit-level=high`, production frontend build, and Docker build pass in CI |
 | **Demonstration data** | 20 seeded station profiles across 8 NER states, plus cached, historical, and generated inputs |
 | **ML status** | District-grouped prototype evaluation is reproducible; independent field validation remains future work |
 | **Source transparency** | Weather/satellite APIs and UI expose live, cached, fallback, stale, and unavailable states |
@@ -967,13 +967,14 @@ claimed by the current prototype.
 
 ## ✅ Test Results
 
-### Latest Clean Verification: 90/90 PASSED
+### Latest Clean Verification: 97/97 PASSED
 
 ```
-Backend:   90 passed, 0 failed
+Backend:   97 test functions passed
 Frontend:  TypeScript + Vite production build passed
-npm audit: 0 known vulnerabilities
+npm audit: high-severity audit gate passed
 pip check: No broken requirements found
+Docker:    production image build passed
 ```
 
 ### Key Test Results
