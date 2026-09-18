@@ -13,7 +13,7 @@ const getDemoSteps = () => [
   { id: 3, title: t('riskScore'), description: t('enterLocation'), icon: Target, route: '/map', color: 'from-purple-500 to-violet-500', tip: t('autoSelectHighRisk') },
   { id: 4, title: t('simulateLandslide'), description: t('simulateLandslideDesc'), icon: Zap, route: '/simulator', color: 'from-red-500 to-orange-500', tip: t('triggerCriticalEvent') },
   { id: 5, title: t('earlyWarning'), description: t('earlyWarningSubtitle'), icon: Bell, route: '/alerts', color: 'from-amber-500 to-yellow-500', tip: t('comparativeRisk') },
-  { id: 6, title: t('satellite'), description: t('realSatelliteData'), icon: Eye, route: '/satellite', color: 'from-teal-500 to-cyan-500', tip: t('liveFromOpenMeteo') },
+  { id: 6, title: t('satellite'), description: 'Cached satellite-derived snapshot', icon: Eye, route: '/satellite', color: 'from-teal-500 to-cyan-500', tip: 'Explain the cached/stale badge and observation timestamp' },
   { id: 7, title: t('aiRiskAssessment'), description: t('aiRiskRuns'), icon: Shield, route: '/station/NER-011', color: 'from-indigo-500 to-blue-500', tip: t('recommendation') },
   { id: 8, title: t('languageLabel'), description: t('liveMonitoring'), icon: Radio, route: '/', color: 'from-pink-500 to-rose-500', tip: t('demoModeLabel') },
 ];
@@ -183,7 +183,7 @@ export default function DemoFlow() {
             { label: t('historicalEventsLabel'), value: '44', sub: '2011-2024 documented' },
             { label: t('languagesLabel'), value: '4', sub: 'EN, HI, BN, AS' },
             { label: t('apiEndpointsLabel'), value: '21', sub: 'All returning 200' },
-            { label: t('realSatelliteData'), value: '60+', dataPoints: t('elevationSoilRainfall') || 'Elevation, soil, rainfall' },
+            { label: 'Satellite snapshot', value: '20 profiles', dataPoints: t('elevationSoilRainfall') || 'Elevation, soil, rainfall' },
             { label: t('responseTimeLabel'), value: '<50ms', sub: t('p95ApiLatency') },
           ].map((stat, i) => (
             <div key={i} className="text-center p-3 bg-dark-800/50 rounded-lg">

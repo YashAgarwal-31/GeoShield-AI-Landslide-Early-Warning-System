@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getStation, getStationHistory, getWeather, getWeatherForecast } from '../services/api';
+import DataSourceBadge from '../components/DataSourceBadge';
 import { t } from '../i18n/translations';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -27,6 +28,7 @@ export default function StationDetail() {
   const [history, setHistory] = useState<any[]>([]);
   const [weather, setWeather] = useState<any>(null);
   const [forecast, setForecast] = useState<any[]>([]);
+  const [forecastKind, setForecastKind] = useState<'forecast' | 'demo_history'>('demo_history');
   const [loading, setLoading] = useState(true);
   const [timeRange, setTimeRange] = useState(24);
   const [activeTab, setActiveTab] = useState<'charts' | 'forecast'>('charts');
@@ -44,7 +46,8 @@ export default function StationDetail() {
         setStation(stationRes.data);
         setHistory(historyRes.data);
         setWeather(weatherRes.data);
-        setForecast(forecastRes.data);
+        setForecast(forecastRes.data.forecast);
+        setForecastKind(forecastRes.data.series_kind);
       } catch (e) {
         console.error('Station fetch error:', e);
       } finally {
@@ -298,6 +301,10 @@ export default function StationDetail() {
             </div>
           </div>
 
+          <div className="mb-4">
+            <DataSourceBadge source={weather.source} />
+          </div>
+
           {activeTab === 'charts' && (
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
               {[
@@ -317,7 +324,9 @@ export default function StationDetail() {
 
           {activeTab === 'forecast' && forecast.length > 0 && (
             <div className="space-y-4">
-              <h4 className="text-xs text-dark-400 font-medium">48-Hour Forecast</h4>
+              <h4 className="text-xs text-dark-400 font-medium">
+                {forecastKind === 'forecast' ? '48-Hour Forecast' : 'Seeded Demo Weather History'}
+              </h4>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>

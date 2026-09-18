@@ -246,13 +246,16 @@ class TestWeather:
         data = r.json()
         assert "data" in data
         assert "temperature" in data["data"]
+        assert data["source"]["mode"] in {"live", "cached", "fallback"}
+        assert isinstance(data["source"]["is_stale"], bool)
 
     def test_weather_forecast(self):
         r = client.get("/api/weather/NER-001/forecast?hours=48")
         assert r.status_code == 200
         data = r.json()
-        assert isinstance(data, list)
-        assert len(data) > 0
+        assert data["series_kind"] in {"forecast", "demo_history"}
+        assert len(data["forecast"]) > 0
+        assert "source" in data
 
 
 # ── Satellite ──────────────────────────────────────────────────
@@ -262,18 +265,22 @@ class TestSatellite:
         assert r.status_code == 200
         data = r.json()
         assert data["total_stations"] == 20
+        assert data["source"]["mode"] == "cached"
+        assert isinstance(data["source"]["age_seconds"], int)
 
     def test_satellite_summary(self):
         r = client.get("/api/satellite/summary")
         assert r.status_code == 200
         data = r.json()
         assert "elevation" in data
+        assert "source" in data
 
     def test_satellite_risk_zones(self):
         r = client.get("/api/satellite/risk-zones")
         assert r.status_code == 200
         data = r.json()
-        assert len(data) == 20
+        assert len(data["risk_zones"]) == 20
+        assert data["source"]["mode"] == "cached"
 
 
 # ── Roads & Villages ───────────────────────────────────────────

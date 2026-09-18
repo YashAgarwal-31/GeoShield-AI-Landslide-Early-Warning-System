@@ -742,22 +742,18 @@ GeoShield integrates **flood-landslide correlation** data for all 19 NER distric
 
 ## 🚀 Quick Start
 
-### Download Pre-Built Apps
+### Platform Wrappers
 
-| Platform | File | Size | How to Run |
-|----------|------|------|------------|
-| **Android** | `GeoShield-Android.apk` | 7.9 MB | Transfer to phone → Install |
-| **Linux AppImage** | `GeoShield-1.0.0.AppImage` | 108 MB | `chmod +x` then `./GeoShield-*.AppImage` |
-| **Linux DEB** | `geoshield_1.0.0_amd64.deb` | 104 MB | `sudo dpkg -i geoshield_*.deb` |
-| **Windows** | `GeoShield-1.0.0-Windows-x64.zip` | 165 MB | Extract → Run `GeoShield.exe` |
-| **Windows** | `start.bat` | 1 KB | Double-click to auto-setup & launch |
+Electron and Capacitor wrapper configurations are included, but packaged Android,
+Linux, and Windows binaries are not part of the current clean verification. Use
+the web setup below for the repeatable presentation build.
 
 ### One-Command Deploy (Web)
 
 ```bash
 # Clone
-git clone https://github.com/officialarghya29/GeoShield.git
-cd GeoShield
+git clone https://github.com/YashAgarwal-31/GeoShield-AI-Landslide-Early-Warning-System.git
+cd GeoShield-AI-Landslide-Early-Warning-System
 
 # Deploy (creates venv, installs deps, builds frontend, starts server)
 bash deploy.sh
@@ -777,6 +773,8 @@ python3 -m venv venv          # Create virtual environment
 source venv/bin/activate      # Activate venv (Linux/Mac)
 # .\venv\Scripts\activate    # Activate venv (Windows)
 pip install -r requirements.txt
+# Optional live model-derived weather (offline fallback remains available):
+# export WEATHER_LIVE_ENABLED=true
 python -m uvicorn app.main:app --host 0.0.0.0 --port 8000
 
 # Frontend (separate terminal)
@@ -922,7 +920,7 @@ GeoShield/
 | **HTTP** | Axios | 1.x | API client |
 | **Mobile** | Capacitor | 6.x + Status Bar | Android wrapper, futuristic splash |
 | **Desktop** | Electron | 44.x | Windows/Linux, auto-starts backend |
-| **Testing** | pytest + TestClient | — | 87 tests in the verified Phase 2 suite |
+| **Testing** | pytest + TestClient | — | 90 tests in the verified Phase 3 suite |
 
 ---
 
@@ -934,10 +932,11 @@ GeoShield/
 |------|------------------------|
 | **Backend** | FastAPI application starts and the health, dashboard, and prediction flows respond |
 | **Frontend** | React 18 + TypeScript production build completes |
-| **Automated tests** | 87 backend tests pass in a clean Phase 2 environment |
+| **Automated tests** | 90 backend tests pass in a clean Phase 3 environment |
 | **Security checks** | Dependency checks pass; npm reports no known vulnerabilities in the audited install |
 | **Demonstration data** | 20 seeded station profiles across 8 NER states, plus cached, historical, and generated inputs |
 | **ML status** | District-grouped prototype evaluation is reproducible; independent field validation remains future work |
+| **Source transparency** | Weather/satellite APIs and UI expose live, cached, fallback, stale, and unavailable states |
 
 ### Intended Impact
 
@@ -951,10 +950,10 @@ claimed by the current prototype.
 
 ## ✅ Test Results
 
-### Latest Clean Verification: 87/87 PASSED
+### Latest Clean Verification: 90/90 PASSED
 
 ```
-Backend:   87 passed, 0 failed
+Backend:   90 passed, 0 failed
 Frontend:  TypeScript + Vite production build passed
 npm audit: 0 known vulnerabilities
 pip check: No broken requirements found
@@ -1045,8 +1044,8 @@ cd geo-shield && npm install && npm run build:win
 |-------|----------|----------|
 | **Phase 1** | ✅ Done | Baseline audit, dependency correction, risk-guidance consistency fix, provenance policy, verified backend/frontend baseline |
 | **Phase 2** | ✅ Done | Dataset audit, provenance manifest, checksum-bound report, district-grouped ML evaluation, imbalance-aware metrics, regression tests |
-| **Phase 3** | Next | Reliable weather/satellite adapters with timestamps, freshness indicators, and explicit fallback status |
-| **Phase 4** | Planned | Production configuration/security hardening, deployment checks, offline demo, presentation, and viva material |
+| **Phase 3** | ✅ Done | Optional live weather adapter, timeout and TTL cache, seeded fallback, satellite snapshot reload, timestamps, freshness, source badges, regression tests |
+| **Phase 4** | Next | Production configuration/security hardening, deployment checks, offline demo, presentation, and viva material |
 
 ---
 

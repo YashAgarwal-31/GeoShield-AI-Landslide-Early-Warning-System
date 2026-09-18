@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { getSatelliteSummary, getSatelliteData, getSatelliteRiskZones, SatelliteSummary, SatelliteStation, SatelliteRiskZone } from '../services/api';
+import { getSatelliteSummary, getSatelliteData, getSatelliteRiskZones, SatelliteSummary, SatelliteStation, SatelliteRiskZone, DataSourceMetadata } from '../services/api';
+import DataSourceBadge from '../components/DataSourceBadge';
 import { t } from '../i18n/translations';
 import {
   Satellite, Mountain, Droplets, Leaf, Thermometer, Wind,
@@ -17,6 +18,7 @@ export default function SatelliteData() {
   const [summary, setSummary] = useState<SatelliteSummary | null>(null);
   const [stations, setStations] = useState<SatelliteStation[]>([]);
   const [riskZones, setRiskZones] = useState<SatelliteRiskZone[]>([]);
+  const [source, setSource] = useState<DataSourceMetadata | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'summary' | 'stations' | 'risk-zones'>('summary');
 
@@ -34,7 +36,8 @@ export default function SatelliteData() {
       ]);
       setSummary(summaryRes.data);
       setStations(stationsRes.data.stations);
-      setRiskZones(riskZonesRes.data);
+      setRiskZones(riskZonesRes.data.risk_zones);
+      setSource(summaryRes.data.source || stationsRes.data.source);
     } catch (e) {
       console.error('Satellite data fetch error:', e);
     } finally {
@@ -47,8 +50,8 @@ export default function SatelliteData() {
       <div className="flex items-center justify-center h-full">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-dark-400 text-sm">Fetching satellite data...</p>
-          <p className="text-dark-500 text-xs mt-1">Connecting to Open-Meteo API</p>
+          <p className="text-dark-400 text-sm">Loading satellite-derived snapshot...</p>
+          <p className="text-dark-500 text-xs mt-1">Checking provenance and freshness</p>
         </div>
       </div>
     );
@@ -61,10 +64,10 @@ export default function SatelliteData() {
         <div>
           <h1 className="text-2xl font-bold text-white flex items-center gap-2">
             <Satellite className="w-6 h-6 text-blue-400" />
-            {t('realSatelliteData')}
+            Satellite-Derived Data Snapshot
           </h1>
           <p className="text-dark-400 text-sm mt-1">
-            {t('liveSatelliteDesc')}
+            Cached regional values with explicit source age and fallback status
           </p>
         </div>
         <button
@@ -77,12 +80,7 @@ export default function SatelliteData() {
       </div>
 
       {/* Data Source Badge */}
-      <div className="flex items-center gap-3">
-        <span className="px-3 py-1.5 rounded-full bg-green-600/10 border border-green-600/20 text-green-400 text-xs font-medium flex items-center gap-1.5">
-          <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-          {t('liveFromOpenMeteo')}
-        </span>          <span className="text-xs text-dark-500">{summary?.data_source}</span>
-      </div>
+      <DataSourceBadge source={source} />
 
       {/* Tab Switcher */}
       <div className="flex bg-dark-800 rounded-xl p-1 border border-dark-700">
@@ -248,7 +246,7 @@ export default function SatelliteData() {
             {t('satelliteBasedRiskZones')}
           </h2>
           <p className="text-xs text-dark-400 mb-4">
-            {t('riskCalcFromMetrics')}
+            Demonstration risk calculated from the available cached snapshot
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {riskZones.map((zone) => (
@@ -271,22 +269,22 @@ export default function SatelliteData() {
                 <div className="grid grid-cols-2 gap-2 mb-3">
                   <div className="text-center p-1.5 rounded-lg bg-dark-800/50">
                     <Mountain className="w-3 h-3 text-blue-400 mx-auto mb-0.5" />
-                    <p className="text-xs font-bold text-white">{zone.real_data.elevation}m</p>
+                    <p className="text-xs font-bold text-white">{zone.snapshot_data.elevation}m</p>
                     <p className="text-[9px] text-dark-500">elev</p>
                   </div>
                   <div className="text-center p-1.5 rounded-lg bg-dark-800/50">
                     <Droplets className="w-3 h-3 text-emerald-400 mx-auto mb-0.5" />
-                    <p className="text-xs font-bold text-white">{zone.real_data.soil_moisture}</p>
+                    <p className="text-xs font-bold text-white">{zone.snapshot_data.soil_moisture}</p>
                     <p className="text-[9px] text-dark-500">SM</p>
                   </div>
                   <div className="text-center p-1.5 rounded-lg bg-dark-800/50">
                     <CloudRain className="w-3 h-3 text-cyan-400 mx-auto mb-0.5" />
-                    <p className="text-xs font-bold text-white">{zone.real_data.rainfall_24h}mm</p>
+                    <p className="text-xs font-bold text-white">{zone.snapshot_data.rainfall_24h}mm</p>
                     <p className="text-[9px] text-dark-500">rain</p>
                   </div>
                   <div className="text-center p-1.5 rounded-lg bg-dark-800/50">
                     <Leaf className="w-3 h-3 text-green-400 mx-auto mb-0.5" />
-                    <p className="text-xs font-bold text-white">{zone.real_data.ndvi}</p>
+                    <p className="text-xs font-bold text-white">{zone.snapshot_data.ndvi}</p>
                     <p className="text-[9px] text-dark-500">NDVI</p>
                   </div>
                 </div>

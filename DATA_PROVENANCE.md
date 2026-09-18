@@ -50,3 +50,11 @@ not all have the same evidentiary status.
 
 The grouped metrics describe generated/derived prototype labels only. They are
 not field accuracy and must always be presented with this limitation.
+
+## Runtime source status
+
+Weather and satellite API responses now include a shared source object containing
+mode, provider, observation time, served time, age, freshness threshold, stale
+state, and fallback reason. Optional live weather is disabled by default; seeded
+weather is always labeled `fallback`. The repository satellite file is always
+labeled `cached`, and its age is calculated from the embedded timestamps.

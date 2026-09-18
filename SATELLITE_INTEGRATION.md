@@ -1,8 +1,15 @@
-# 🛰️ Real Satellite Data Integration Guide
+# 🛰️ Satellite Data Integration Roadmap
 
 ## Overview
 
-This guide explains how to replace simulated data with real satellite measurements from USGS (SRTM DEM) and Copernicus (Sentinel-2 NDVI).
+This guide describes future work required to replace generated/estimated fields
+with independently sourced USGS SRTM and Copernicus Sentinel-2 products.
+
+> **Current status:** these products are not integrated into the default build.
+> The application currently serves an Open-Meteo-derived cached station snapshot
+> whose NDVI values are estimated. Phase 3 exposes its observation timestamp,
+> age, and stale status instead of presenting it as a live feed. See
+> [`docs/DATA_SOURCE_ADAPTERS.md`](docs/DATA_SOURCE_ADAPTERS.md).
 
 ---
 
@@ -151,7 +158,7 @@ for station in stations:
 | Slope Angle | Random ±5° from base | Real from SRTM DEM | **HIGH** |
 | Elevation | Random ±50m from base | Real from SRTM DEM | **HIGH** |
 | Vegetation (NDVI) | Formula-based | Real from Sentinel-2 | **HIGH** |
-| Training Data | Synthetic | Real terrain features | **HIGH** |
+| Training Data | Mixed regional/generated prototype rows | Independently sourced and versioned terrain features | **HIGH** |
 
 ---
 
@@ -159,11 +166,11 @@ for station in stations:
 
 | Task | Time | Priority |
 |------|------|----------|
-| Register accounts | 5 min | NOW |
-| Download SRTM DEM | 20 min | HIGH |
-| Download Sentinel-2 NDVI | 15 min | HIGH |
-| Write integration script | 2-3 hours | BEFORE DEMO |
-| Retrain AI model | 30 min | BEFORE DEMO |
+| Confirm source licenses and coverage | Project task | HIGH |
+| Download and checksum SRTM DEM | Project task | HIGH |
+| Download and checksum Sentinel-2 scenes | Project task | HIGH |
+| Add reproducible extraction pipeline | Project task | HIGH |
+| Re-evaluate with grouped validation | Project task | HIGH |
 
 ---
 

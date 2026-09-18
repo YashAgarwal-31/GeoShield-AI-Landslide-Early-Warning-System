@@ -224,6 +224,40 @@ export interface WeatherData {
   timestamp: string;
 }
 
+export interface DataSourceMetadata {
+  mode: 'live' | 'cached' | 'fallback' | 'unavailable';
+  provider: string;
+  observed_at: string | null;
+  served_at: string;
+  age_seconds: number | null;
+  max_age_seconds: number;
+  is_stale: boolean;
+  fallback_reason: string | null;
+  detail: string;
+}
+
+export interface WeatherResponse {
+  station_id: string;
+  data: WeatherData | null;
+  source: DataSourceMetadata;
+}
+
+export interface WeatherForecastPoint {
+  timestamp: string;
+  temperature: number;
+  rainfall_1h: number;
+  forecast_rainfall_24h?: number;
+  humidity: number;
+}
+
+export interface WeatherForecastResponse {
+  station_id: string;
+  hours: number;
+  series_kind: 'forecast' | 'demo_history';
+  forecast: WeatherForecastPoint[];
+  source: DataSourceMetadata;
+}
+
 export interface PredictResult {
   location: { latitude: number; longitude: number };
   nearest_station: { station_id: string; name: string; distance_km: number } | null;
@@ -292,9 +326,9 @@ export const getRoads = () => api.get<Road[]>('/roads');
 export const getVillages = (riskZone?: string) => api.get<Village[]>('/villages', { params: riskZone ? { risk_zone: riskZone } : {} });
 
 // --- Weather ---
-export const getWeather = (stationId: string) => api.get<{ data: WeatherData }>(`/weather/${stationId}`);
+export const getWeather = (stationId: string) => api.get<WeatherResponse>(`/weather/${stationId}`);
 export const getWeatherForecast = (stationId: string, hours = 48) =>
-  api.get<{ timestamp: string; temperature: number; rainfall_1h: number; forecast_rainfall_24h: number; humidity: number }[]>(`/weather/${stationId}/forecast?hours=${hours}`);
+  api.get<WeatherForecastResponse>(`/weather/${stationId}/forecast?hours=${hours}`);
 
 // --- Simulator ---
 export interface SimulationResult {
@@ -350,18 +384,18 @@ export interface SatelliteSummary {
   ndvi: { min: number; max: number; avg: number; description: string };
   temperature: { min: number; max: number; avg: number; unit: string };
   humidity: { min: number; max: number; avg: number; unit: string };
-  data_source: string;
+  source: DataSourceMetadata;
 }
 export interface SatelliteRiskZone {
   station_id: string; name: string; state: string; lat: number; lng: number;
   satellite_risk_score: number; risk_level: string;
   factors: { elevation_risk: number; soil_moisture_risk: number; rainfall_risk: number; vegetation_risk: number };
-  real_data: { elevation: number; soil_moisture: number; rainfall_24h: number; ndvi: number };
+  snapshot_data: { elevation: number; soil_moisture: number; rainfall_24h: number; ndvi: number };
 }
-export const getSatelliteData = () => api.get<{ stations: SatelliteStation[]; total_stations: number }>('/satellite/data');
-export const getStationSatelliteData = (id: string) => api.get<SatelliteStation>(`/satellite/data/${id}`);
+export const getSatelliteData = () => api.get<{ stations: SatelliteStation[]; total_stations: number; source: DataSourceMetadata }>('/satellite/data');
+export const getStationSatelliteData = (id: string) => api.get<{ station: SatelliteStation; source: DataSourceMetadata }>(`/satellite/data/${id}`);
 export const getSatelliteSummary = () => api.get<SatelliteSummary>('/satellite/summary');
-export const getSatelliteRiskZones = () => api.get<SatelliteRiskZone[]>('/satellite/risk-zones');
+export const getSatelliteRiskZones = () => api.get<{ risk_zones: SatelliteRiskZone[]; source: DataSourceMetadata }>('/satellite/risk-zones');
 
 // --- Flood Data ---
 export interface FloodDistrict {

@@ -12,8 +12,10 @@ Last verified: September 18, 2026
 | ML | XGBoost plus Random Forest/Gradient Boosting components | Experimental |
 | Desktop wrapper | Electron | Configured; package builds need per-OS verification |
 | Mobile wrapper | Capacitor configuration | Partial |
-| Data | Historical, cached, interpolated, seeded, and generated inputs | Mixed provenance |
+| Data | Historical, cached, interpolated, seeded, and generated inputs | Mixed provenance with API source labels |
 | Evaluation | District-grouped holdout and cross-validation with dataset checksum | Reproducible prototype evaluation |
+| Weather adapter | Optional Open-Meteo lookup, timeout, TTL cache, seeded fallback | Working; live mode opt-in |
+| Satellite adapter | File reload, observation age, staleness and unavailable states | Working cached snapshot |
 
 ## Independently verified in a clean environment
 
@@ -40,7 +42,8 @@ Last verified: September 18, 2026
 ## Not production-ready
 
 - No live physical sensor network is connected by default.
-- Satellite and weather feeds are not guaranteed to be current.
+- Satellite and weather responses expose mode, timestamp, age, and staleness;
+  the default weather source is still seeded demo data.
 - Demo credentials and development defaults must not be used in production.
 - Model data contains realistically generated and derived samples.
 - Probability calibration and independent field validation are pending.
@@ -54,6 +57,8 @@ Last verified: September 18, 2026
    district-grouped validation, baseline comparison, and imbalance-aware metrics
    are implemented. Row-level source separation and independent field labels are
    still pending.
-3. **Integrations:** add reliable weather/satellite adapters with explicit freshness and fallback indicators.
+3. **Integrations:** optional live weather, bounded timeout, cache, fallback,
+   satellite snapshot reload, source age, and frontend status badges are
+   implemented. Independently licensed Sentinel/IMD inputs remain future work.
 4. **Security:** remove production defaults, constrain CORS, add secret validation and abuse tests.
 5. **Presentation:** prepare a repeatable offline demo, metrics report, architecture diagrams, and viva material.

@@ -237,6 +237,7 @@ class TestSatelliteFlow:
         r = client.get("/api/satellite/data")
         data = r.json()
         assert data["total_stations"] == 20
+        assert data["source"]["mode"] == "cached"
         for station in data["stations"]:
             assert "real_elevation" in station
             assert "real_soil_moisture_0_7cm" in station
@@ -249,14 +250,16 @@ class TestSatelliteFlow:
         assert "min" in data["elevation"]
         assert "max" in data["elevation"]
         assert data["elevation"]["max"] > data["elevation"]["min"]
+        assert data["source"]["provider"]
 
     def test_satellite_risk_zones_scored(self):
         r = client.get("/api/satellite/risk-zones")
         data = r.json()
-        assert len(data) == 20
-        for zone in data:
+        assert len(data["risk_zones"]) == 20
+        for zone in data["risk_zones"]:
             assert 0 <= zone["satellite_risk_score"] <= 100
             assert zone["risk_level"] in ["low", "moderate", "high", "critical"]
+            assert "snapshot_data" in zone
 
 
 # ── Weather Data Flow ──────────────────────────────────────────
@@ -271,8 +274,9 @@ class TestWeatherFlow:
     def test_weather_forecast_has_future_data(self):
         r = client.get("/api/weather/NER-001/forecast?hours=48")
         data = r.json()
-        assert len(data) > 0
-        assert len(data) <= 48
+        assert len(data["forecast"]) > 0
+        assert len(data["forecast"]) <= 48
+        assert data["series_kind"] in ["forecast", "demo_history"]
 
 
 # ── Data Export Flow ───────────────────────────────────────────
