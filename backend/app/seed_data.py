@@ -147,6 +147,7 @@ def _random_sensor_reading(station, hours_ago=0):
         "tilt_angle_y": tilt_y,
         "pore_water_pressure": pore_pressure,
         "vibration_level": vibration,
+        "source": "seeded_reference",
         "timestamp": now,
     }
 
