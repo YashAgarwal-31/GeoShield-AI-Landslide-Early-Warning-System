@@ -59,7 +59,7 @@ def _parse_observed_at(value: str | None) -> datetime:
 
 
 @router.post("/stations", status_code=201)
-def create_station(
+async def create_station(
     payload: SensorStationCreateRequest,
     db: Session = Depends(get_db),
     user: dict = Depends(require_role("admin")),
@@ -89,6 +89,16 @@ def create_station(
     db.add(station)
     db.commit()
     db.refresh(station)
+    await alert_manager.broadcast({
+        "type": "station.created",
+        "station": {
+            "station_id": station.station_id,
+            "name": station.name,
+            "state": station.state,
+            "district": station.district,
+            "is_active": station.is_active,
+        },
+    })
     return {
         "id": station.id,
         "station_id": station.station_id,
@@ -98,7 +108,7 @@ def create_station(
 
 
 @router.put("/stations/{station_id}")
-def update_station(
+async def update_station(
     station_id: str,
     payload: SensorStationUpdateRequest,
     db: Session = Depends(get_db),
@@ -119,6 +129,16 @@ def update_station(
 
     db.commit()
     db.refresh(station)
+    await alert_manager.broadcast({
+        "type": "station.updated",
+        "station": {
+            "station_id": station.station_id,
+            "name": station.name,
+            "state": station.state,
+            "district": station.district,
+            "is_active": station.is_active,
+        },
+    })
     return {
         "station_id": station.station_id,
         "name": station.name,
@@ -192,6 +212,34 @@ def get_stations(db: Session = Depends(get_db)):
             } if risk else None,
         })
     return result
+
+
+@router.get("/stations/manage")
+def get_managed_stations(
+    db: Session = Depends(get_db),
+    user: dict = Depends(require_role("admin")),
+):
+    """Return active and inactive stations for the administration console."""
+    stations = db.query(SensorStation).order_by(
+        SensorStation.state,
+        SensorStation.district,
+        SensorStation.station_id,
+    ).all()
+    return [{
+        "id": station.id,
+        "station_id": station.station_id,
+        "name": station.name,
+        "latitude": station.latitude,
+        "longitude": station.longitude,
+        "state": station.state,
+        "district": station.district,
+        "village": station.village,
+        "elevation": station.elevation,
+        "slope_angle": station.slope_angle,
+        "soil_type": station.soil_type,
+        "vegetation_cover": station.vegetation_cover,
+        "is_active": station.is_active,
+    } for station in stations]
 
 
 @router.get("/stations/{station_id}")
