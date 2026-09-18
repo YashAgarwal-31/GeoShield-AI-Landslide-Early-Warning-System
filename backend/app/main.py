@@ -142,6 +142,15 @@ def init_database():
             print("[GeoShield] Reference station data already present, skipping seed.")
 
         ensure_bootstrap_admin(db)
+
+        if IS_PRODUCTION and not _env_bool("ENABLE_DEMO_USERS", False):
+            from app.models import UserAccount
+
+            if db.query(UserAccount).filter(UserAccount.is_active == True).count() == 0:
+                raise RuntimeError(
+                    "Production database has no active user. Configure the bootstrap admin "
+                    "for the first startup or restore an existing user database."
+                )
     finally:
         db.close()
 
