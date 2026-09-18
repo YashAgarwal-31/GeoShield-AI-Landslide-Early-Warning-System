@@ -10,7 +10,7 @@
 ![SIH 2026](https://img.shields.io/badge/SIH-2026-green?style=for-the-badge)
 ![Problem ID](https://img.shields.io/badge/Problem_ID-26001-blue?style=for-the-badge)
 ![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=for-the-badge&logo=python&logoColor=white)
-![React](https://img.shields.io/badge/React-19-61DAFB?style=for-the-badge&logo=react&logoColor=white)
+![React](https://img.shields.io/badge/React-18-61DAFB?style=for-the-badge&logo=react&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?style=for-the-badge&logo=fastapi&logoColor=white)
 ![AI/ML](https://img.shields.io/badge/AI/ML-Random_Forest-orange?style=for-the-badge)
 
@@ -154,17 +154,17 @@ Landslides in NER are caused by a complex interplay of **geological, meteorologi
 
 ### GeoShield — A Complete Monitoring Platform
 
-GeoShield is a **full-stack AI-powered landslide monitoring system** designed specifically for the North Eastern Region. It combines **real-time sensor data**, **satellite imagery**, **machine learning prediction**, and **multilingual early warning** into a single unified platform.
+GeoShield is a **full-stack AI-powered landslide monitoring prototype** designed specifically for the North Eastern Region. It combines **seeded sensor scenarios**, **cached regional data**, **machine learning prediction**, and **multilingual warning workflows** into a single unified platform.
 
 ### 6 Core Capabilities
 
 | # | Capability | Description | Technology |
 |---|------------|-------------|------------|
-| 1 | **Real-Time Monitoring** | 20 IoT sensor stations across 8 NER states collecting rainfall, soil moisture, ground displacement, tilt, and pore pressure data | FastAPI + SQLite |
-| 2 | **AI Risk Prediction** | RF+GB VotingClassifier ensemble (95.2% accuracy, 94.6% F1) trained on 12,000 real NER terrain samples | scikit-learn |
-| 3 | **Early Warning System** | Multi-level alert framework (Low → Moderate → High → Critical) with automatic SMS/push notification support | WebSocket + REST |
-| 4 | **GIS Risk Mapping** | Interactive Leaflet.js heatmaps showing real-time risk distribution, road status, village locations, and sensor stations | Leaflet.js |
-| 5 | **Citizen Reporting** | Geo-tagged photo/video reporting system for field officers and local residents with offline queue support | React + FastAPI |
+| 1 | **Monitoring Dashboard** | 20 seeded station profiles across 8 NER states with rainfall, soil moisture, ground displacement, tilt, and pore pressure fields | FastAPI + SQLite |
+| 2 | **AI Risk Prediction** | Experimental RF+GB VotingClassifier trained on regional and realistically generated terrain samples; independent validation is planned | scikit-learn |
+| 3 | **Warning Workflow** | Multi-level alert framework (Low → Moderate → High → Critical); external SMS/push delivery is planned | WebSocket + REST |
+| 4 | **GIS Risk Mapping** | Interactive Leaflet.js heatmaps showing the prototype risk distribution, road status, village locations, and station profiles | Leaflet.js |
+| 5 | **Citizen Reporting** | Geo-tagged photo/video reporting workflow for field officers and local residents | React + FastAPI |
 | 6 | **Multilingual UI** | Full interface translation in English, Hindi, Bengali, and Assamese covering all 90+ UI strings | i18n system |
 
 ---
@@ -174,7 +174,7 @@ GeoShield is a **full-stack AI-powered landslide monitoring system** designed sp
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                     🖥️  PRESENTATION LAYER                      │
-│                     (React 19 + TypeScript + Tailwind CSS)       │
+│                     (React 18 + TypeScript + Tailwind CSS)       │
 │                                                                 │
 │  ┌───────────┐ ┌───────────┐ ┌───────────┐ ┌───────────┐       │
 │  │  📊       │ │  🗺️       │ │  🚨       │ │  📝       │       │
@@ -189,8 +189,8 @@ GeoShield is a **full-stack AI-powered landslide monitoring system** designed sp
 │  │ Simulator │ │ Satellite │ │ Station   │                    │
 │  │           │ │           │ │           │                    │
 │  │ • 4 level │ │ • 20 stn  │ │ • Charts  │                    │
-│  │ • AI eval │ │ • Real    │ │ • AI risk │                    │
-│  │ • History │ │ • Live    │ │ • Weather │                    │
+│  │ • AI eval │ │ • Cached  │ │ • AI risk │                    │
+│  │ • History │ │ • Demo    │ │ • Weather │                    │
 │  └─────┬─────┘ └─────┬─────┘ └─────┬─────┘                    │
 ├────────┴─────────────┴─────────────┴────────────────────────────┤
 │                     ⚙️  BUSINESS LAYER                          │
@@ -204,7 +204,7 @@ GeoShield is a **full-stack AI-powered landslide monitoring system** designed sp
 │  │  /api/alerts/*       → CRUD, acknowledge, resolve       │   │
 │  │  /api/reports/*      → Submit, list, verify             │   │
 │  │  /api/weather/*      → Current + forecast               │   │
-│  │  /api/satellite/*    → Real data, summary, risk zones   │   │
+│  │  /api/satellite/*    → Cached data, summary, risk zones │   │
 │  │  /api/simulate/*     → Landslide simulation             │   │
 │  │                                                          │   │
 │  └──────────────────────────────────────────────────────────┘   │
@@ -220,8 +220,8 @@ GeoShield is a **full-stack AI-powered landslide monitoring system** designed sp
 │  │          └──────────┬───────────┘                        │   │
 │  │          VotingClassifier (soft, weights=[0.4, 0.6])     │   │
 │  │                                                          │   │
-│  │  Training: 12,000 NER samples | 9 features              │   │
-│  │  Accuracy: 95.2% test | F1: 94.6% weighted              │   │
+│  │  Training: regional + generated samples | 9 features    │   │
+│  │  Validation: experimental; independent review pending   │   │
 │  │                                                          │   │
 │  └──────────────────────────────────────────────────────────┘   │
 ├─────────────────────────────────────────────────────────────────┤
@@ -259,11 +259,11 @@ Traditional landslide susceptibility mapping relies on **static geological maps*
 - Takes weeks to produce results
 - Cannot provide real-time predictions
 
-GeoShield's AI model solves these problems by:
-- Processing **real-time sensor data** continuously
-- Learning from **12,000 historical NER terrain samples**
-- Providing predictions in **<30 seconds**
-- Adapting to **seasonal monsoon patterns**
+GeoShield's prototype explores these problems by:
+- Processing **seeded and simulated sensor readings**
+- Learning from a mix of **regional and realistically generated samples**
+- Returning interactive demonstration predictions
+- Representing seasonal monsoon-related features
 
 ### Model Architecture
 
@@ -318,11 +318,11 @@ GeoShield's AI model solves these problems by:
 
   2. Daily Rainfall  ████████████████████        20%
      Why: Primary trigger for most NER landslides
-     Source: Open-Meteo weather API (live)
+     Source: Open-Meteo-compatible weather field
 
   3. Soil Moisture   ███████████████             15%
      Why: Saturated soil loses cohesive strength
-     Source: Open-Meteo soil moisture API (live)
+     Source: Open-Meteo-compatible soil-moisture field
 
   4. 7-Day Rainfall  ███████████████             15%
      Why: Cumulative saturation effect
@@ -348,67 +348,34 @@ GeoShield's AI model solves these problems by:
 
 ### Model Performance
 
-> All metrics verified via independent evaluation on the actual trained model.
-
-```
-  MODEL ACCURACY (VERIFIED)
-  ═══════════════════════════════════════════════════════
-
-  Training Accuracy:   ████████████████████████████████████████  99.98%
-  Test Accuracy:       ████████████████████████████████████████  95.2%
-  F1 Score (weighted): ████████████████████████████████████      94.6%
-
-  INDIVIDUAL MODELS:
-  Gradient Boosting:   ████████████████████████████████████████  95.3%
-  Random Forest:       ██████████████████████████████████        88.8%
-  Ensemble (RF+GB):    ████████████████████████████████████████  95.2%
-
-  Training Samples:    12,000 (real NER terrain coordinates)
-  Test Samples:        2,400 (20% holdout, stratified)
-  Features:            9 input features
-  Classes:             4 (low, moderate, high, critical)
-  Model Caching:       joblib pickle with version-tagged reload
-```
-
-#### Per-Class Performance
-
-```
-  CLASS         SAMPLES   PRECISION   RECALL   F1-SCORE
-  ─────────────────────────────────────────────────────
-  Low            2,180     0.96       0.99     0.97
-  High              33     0.00       0.00     0.00
-  Critical         187     0.84       0.73     0.78
-  ─────────────────────────────────────────────────────
-  Weighted Avg   2,400     0.94       0.95     0.95
-```
-
-> **Note:** The "Moderate" class has only 4 samples in the full dataset (0.03%),
-> so it is effectively absorbed into adjacent classes. The model excels at
-> identifying **Low** risk (98.5% per-class accuracy) and detecting **Critical**
-> events (73.3% recall) — the two most operationally important categories
-> for an early warning system.
+The inference pipeline and four risk classes are functional, but the existing
+training data have mixed provenance and severe class imbalance. The upstream
+accuracy figures are therefore excluded from this adaptation's verified results.
+Phase 2 will introduce source-level data documentation, grouped/geographic data
+splits, imbalance-aware metrics, baselines, and reproducible evaluation before a
+performance figure is used in the presentation.
 
 ---
 
-## 🛰️ Real Data Sources
+## 🛰️ Data Sources and Planned Integrations
 
 ### Satellite & Sensor Data Integration
 
 | Source | Data Type | Status | Coverage | Resolution |
 |--------|-----------|--------|----------|------------|
-| **Open-Meteo API** | Elevation, Soil Moisture, Weather | ✅ Live | 20 stations | Real-time |
-| **NASA GLC** | Historical Landslide Catalog | ✅ 44 events | 8 NER states | Point data |
-| **Kaggle** | India Rainfall (1901-2015) | ✅ 528 rows | District | Monthly |
-| **Kaggle** | India Landslide Incidents | ✅ 200+ events | India | District |
+| **Open-Meteo-derived file** | Elevation, Soil Moisture, Weather | Cached/demo | 20 station profiles | Snapshot |
+| **NASA GLC extract** | Historical Landslide Catalog | Repository dataset | 8 NER states | Point data |
+| **Kaggle rainfall extract** | India Rainfall (1901-2015) | Repository dataset | District | Monthly |
+| **Kaggle landslide extract** | India Landslide Incidents | Repository dataset | India | District |
 | **SRTM DEM** | Terrain/Elevation | 📋 Ready | Global | 30m |
 | **Sentinel-2** | NDVI Vegetation Index | 📋 Ready | Global | 10m |
 | **IMD** | Official Indian Rainfall | 📋 Ready | District | Daily |
 | **USGS** | Landslide Hazard Maps | 📋 Ready | Regional | Variable |
 
-### Real Satellite Metrics Per Station
+### Cached Satellite-Derived Metrics Per Station
 
 ```
-  REAL-TIME SATELLITE DATA (Open-Meteo API)
+  CACHED DEMONSTRATION DATA (Open-Meteo-derived)
   ═══════════════════════════════════════════════════════
 
   ELEVATION RANGE (meters):
@@ -462,12 +429,12 @@ GeoShield's AI model solves these problems by:
 | Page | Description | Key Features |
 |------|-------------|--------------|
 | **🔐 Login** | Authentication gate | 4 demo accounts, role-based access |
-| **📊 Dashboard** | Real-time overview | 3 tabs (Overview/Stations/Alerts), radar chart, rankings |
+| **📊 Dashboard** | Prototype overview | 3 tabs (Overview/Stations/Alerts), radar chart, rankings |
 | **🗺️ Risk Map** | GIS visualization | Leaflet heatmap, roads, villages, click-to-predict |
 | **🚨 Alerts** | Warning management | Filter by status/risk, acknowledge, resolve workflow |
 | **📝 Reports** | Citizen reporting | Photo upload, geo-tagging, multi-type reports |
 | **⚡ Simulator** | Live demo tool | 4 intensity levels, AI assessment, alert generation |
-| **🛰️ Satellite** | Real data view | 20 stations, live metrics, risk scoring |
+| **🛰️ Satellite** | Cached data view | 20 station profiles, demo metrics, risk scoring |
 | **📡 Station** | Deep dive | Sensor charts, AI gauge, weather, satellite data |
 | **🌊 Flood Risk** | Compound hazard | Flood-landslide correlation scatter plot |
 | **🎯 Demo Flow** | Judge walkthrough | 8-step guide, live simulation, key metrics |
@@ -476,7 +443,7 @@ GeoShield's AI model solves these problems by:
 
 ```
   ┌─────────────────────────────────────────────────────────────┐
-  │  🛡️ GeoShield Dashboard                    LIVE  SIH 2026 │
+  │  🛡️ GeoShield Dashboard                    DEMO  SIH 2026 │
   ├─────────┬─────────┬─────────┬─────────┬─────────┬─────────┤
   │ Active  │ Active  │ People  │ Pending │ Avg     │ High-   │
   │ Sensors │ Alerts  │ at Risk │ Reports │ Risk    │ Risk    │
@@ -546,25 +513,25 @@ GeoShield's AI model solves these problems by:
   ✅ GET  /api/alerts/stats             → Alert summary stats
 
   WEATHER
-  ✅ GET  /api/weather/{id}             → Live weather data
+  ✅ GET  /api/weather/{id}             → Weather/demo data
   ✅ GET  /api/weather/{id}/forecast    → 48h forecast
 
   SATELLITE
-  ✅ GET  /api/satellite/data           → 20 stations real data
+  ✅ GET  /api/satellite/data           → 20 station data profiles
   ✅ GET  /api/satellite/summary        → NER-wide metrics
-  ✅ GET  /api/satellite/risk-zones     → Risk from real data
+  ✅ GET  /api/satellite/risk-zones     → Risk from available data
 
   SIMULATION
   ✅ POST /api/simulate/landslide       → Trigger simulation
   ✅ POST /api/simulate/batch           → Multi-station sim
 
   WEATHER
-  ✅ GET  /api/weather/{station}        → Live weather
+  ✅ GET  /api/weather/{station}        → Weather/demo data
 
   AUTH
   ✅ POST /api/auth/login                  → JWT token
 
-  TOTAL: 45 ENDPOINTS | ALL RETURNING 200 ✅
+  Endpoint flows are covered by the automated backend suite.
 ```
 
 ---
@@ -703,7 +670,7 @@ The simulator allows presenters to **trigger realistic landslide events** and wa
 
   Step 1 (30s): Dashboard Overview
   → Show 20 stations, risk pie chart, rainfall trends
-  → Point out real satellite data metrics
+  → Explain the cached regional/satellite-derived demo metrics
 
   Step 2 (30s): GIS Risk Map
   → Show interactive map with heatmap
@@ -720,7 +687,7 @@ The simulator allows presenters to **trigger realistic landslide events** and wa
 
   Step 4 (30s): Satellite Data
   → Navigate to Satellite Data page
-  → Show real elevation, soil moisture, NDVI
+  → Show cached elevation, soil moisture, and NDVI fields
   → Compare Tawang (2791m, high risk) vs Agartala (12m, low risk)
 
   Step 5 (30s): Multilingual Support
@@ -836,7 +803,7 @@ GeoShield/
 ├── SIH_2026_PRESENTATION.md               # 15-slide pitch deck
 ├── PRESENTATION.md                        # Slide content with diagrams
 ├── DEPLOYMENT_GUIDE.md                    # Railway/Render/Docker
-├── SATELLITE_INTEGRATION.md               # Real data integration
+├── SATELLITE_INTEGRATION.md               # Satellite-data integration notes
 ├── BUILD_GUIDE.md                         # Desktop/mobile build instructions
 ├── Dockerfile                             # Docker deployment
 ├── Procfile                               # Railway deployment
@@ -869,7 +836,7 @@ GeoShield/
 │   │       ├── reports.py                 # Reports + roads + villages
 │   │       ├── weather.py                 # Weather data
 │   │       ├── simulator.py               # Landslide simulator
-│   │       ├── satellite.py               # Real satellite data
+│   │       ├── satellite.py               # Cached/derived satellite data
 │   │       ├── flood.py                   # Flood risk + correlation
 │   │       ├── alerts_timeline.py         # Timeline + history + trends
 │   │       ├── predict.py                 # Click-to-predict API
@@ -893,7 +860,7 @@ GeoShield/
 │   │   │   ├── Reports.tsx                # Citizen reports
 │   │   │   ├── StationDetail.tsx          # Station + AI + satellite
 │   │   │   ├── Simulator.tsx              # Landslide simulator
-│   │   │   ├── SatelliteData.tsx          # Real satellite metrics
+│   │   │   ├── SatelliteData.tsx          # Satellite demo metrics
 │   │   │   ├── FloodData.tsx              # 19 districts + correlation
 │   │   │   └── DemoFlow.tsx               # 8-step guide for judges
 │   │   ├── components/
@@ -905,8 +872,8 @@ GeoShield/
 │
 ├── datasets/                              # 📊 Data Sources
 │   ├── processed/
-│   │   ├── real_satellite_data.json        # Live Open-Meteo data
-│   │   ├── real_ner_training_data.csv      # 12,000 training samples
+│   │   ├── real_satellite_data.json        # Cached Open-Meteo-derived data
+│   │   ├── real_ner_training_data.csv      # Mixed-provenance training samples
 │   │   └── ner_landslide_events.csv        # Historical events
 │   ├── raw/
 │   │   ├── ner_historical_landslides.csv   # 44 events (2011-2024)
@@ -939,7 +906,7 @@ GeoShield/
 
 | Layer | Technology | Version | Purpose |
 |-------|------------|---------|---------|
-| **Frontend** | React | 19 | UI Framework |
+| **Frontend** | React | 18.2 | UI Framework |
 | **Styling** | Tailwind CSS | 3.x | Responsive design |
 | **Maps** | Leaflet.js | 1.9.4 | GIS visualization |
 | **Charts** | Recharts | 2.x | Data visualization |
@@ -948,100 +915,54 @@ GeoShield/
 | **Database** | SQLite | 3.x | Data storage |
 | **AI/ML** | scikit-learn | 1.x | Risk prediction (RF+GB VotingClassifier) |
 | **Caching** | joblib | — | Model persistence across restarts |
-| **APIs** | Open-Meteo | Free | Real-time weather |
+| **APIs** | Open-Meteo | Free | Optional current-weather lookup with demo fallback |
 | **Build** | Vite | 5.x | Frontend bundler |
 | **HTTP** | Axios | 1.x | API client |
 | **Mobile** | Capacitor | 6.x + Status Bar | Android wrapper, futuristic splash |
 | **Desktop** | Electron | 44.x | Windows/Linux, auto-starts backend |
-| **Testing** | pytest + TestClient | — | 75 tests (35 API + 40 E2E) |
+| **Testing** | pytest + TestClient | — | 84 tests in the verified Phase 1 suite |
 
 ---
 
 ## 📈 Results & Impact
 
-### Key Metrics
+### Verified Prototype Scope
 
-```
-  ╔══════════════════════════════════════════════════════════════╗
-  ║              GeoShield Performance Dashboard                 ║
-  ╠══════════════════════════════════════════════════════════════╣
-  ║                                                              ║
-  ║  🤖 AI Model            95.2% accuracy, 94.6% F1 (12,000 samples)     ║
-  ║  📡 Sensor Stations     20 across 8 NER states              ║
-  ║  📊 API Endpoints       45 fully functional                  ║
-  ║  🗺️  GIS Features        Heatmap + Roads + Villages         ║
-  ║  🛰️  Satellite Data      Real Open-Meteo integration       ║
-  ║  📜 Historical Events   44 events (2011-2024)               ║
-  ║  🌐 Languages           4 (EN, HI, BN, AS)                  ║
-  ║  ⚡ Response Time        <30 seconds AI assessment           ║
-  ║  👥 People Protected    31,977 at-risk population             ║
-  ║  🛣️  Roads Monitored     48 (35 open, 8 partial, 5 blocked)   ║
-  ║  🏘️  Villages Tracked    18 (6 high-risk zones)             ║
-  ║  📝 Citizen Reports     15+ with geo-tagged data             ║
-  ║  🎯 Frontend Pages      9 interactive pages                 ║
-  ║  📱 Login Roles         4 (Admin, Field, District, Citizen) ║
-  ║                                                              ║
-  ╚══════════════════════════════════════════════════════════════╝
-```
+| Area | Current verified scope |
+|------|------------------------|
+| **Backend** | FastAPI application starts and the health, dashboard, and prediction flows respond |
+| **Frontend** | React 18 + TypeScript production build completes |
+| **Automated tests** | 84 backend tests pass in a clean Phase 1 environment |
+| **Security checks** | Dependency checks pass; npm reports no known vulnerabilities in the audited install |
+| **Demonstration data** | 20 seeded station profiles across 8 NER states, plus cached, historical, and generated inputs |
+| **ML status** | Prediction pipeline is functional; defensible performance evaluation and field validation remain future work |
 
-### Potential Impact
+### Intended Impact
 
-| Metric | Before GeoShield | After GeoShield |
-|--------|------------------|-----------------|
-| **Warning Time** | 0 (reactive) | 6+ hours (predictive) |
-| **Coverage** | Manual inspection | 20 automated stations |
-| **Languages** | English only | 4 languages |
-| **Response** | Days | <30 minutes |
-| **Data Source** | Paper reports | Real satellite + sensors |
+GeoShield is intended to demonstrate how multi-source monitoring, risk scoring,
+GIS views, and multilingual alerts could support earlier decision-making. Claims
+about warning lead time, population protected, field coverage, or operational
+response require real sensor deployment and prospective validation; they are not
+claimed by the current prototype.
 
 ---
 
 ## ✅ Test Results
 
-### Test Suite: 75/75 PASSED
+### Latest Clean Verification: 84/84 PASSED
 
 ```
-═══ 35 API TESTS + 40 E2E TESTS ═══
-
-  API Tests (35/35):
-  Health & Auth:       4/4
-  Dashboard:           5/5
-  Sensors:             5/5
-  Alerts:              5/5
-  Predict:             3/3
-  Simulate:            1/1
-  Export:              3/3
-  Weather:             2/2
-  Satellite:           3/3
-  Infrastructure:      2/2
-  Frontend:            2/2
-
-  E2E Integration (40/40):
-  Core Backend:        3/3
-  Dashboard Flow:      5/5
-  Sensor Flow:         3/3
-  Alerts Flow:         4/4
-  Simulator→Alert:     3/3
-  Prediction Flow:     2/2
-  Flood Flow:          3/3
-  Satellite Flow:      3/3
-  Weather Flow:        2/2
-  Export Flow:         3/3
-  Infrastructure:      2/2
-  Frontend Routes:     3/3
-  Alert Workflow:      1/1
-  Security:            3/3
-
-  ════════════════════════════════
-  FINAL: 75/75 PASSED, 0 FAILED
-  ════════════════════════════════
+Backend:   84 passed, 0 failed
+Frontend:  TypeScript + Vite production build passed
+npm audit: 0 known vulnerabilities
+pip check: No broken requirements found
 ```
 
 ### Key Test Results
 
 | Feature | What Was Tested | Result |
 |---------|----------------|--------|
-| **Dashboard** | 20 stations, 32 alerts, risk=43.9 | ✅ Real data |
+| **Dashboard** | Seeded station and alert summaries | ✅ API flow works |
 | **Simulate** | Cherrapunji → risk=99.2/critical | ✅ Alert fires |
 | **Alert Flow** | Count grew 101→102 after sim | ✅ Flow works |
 | **AI Predict** | risk=89.4/critical, 2 factors | ✅ Nearest station found |
@@ -1127,16 +1048,13 @@ cd geo-shield && npm install && npm run build:win
 
 ---
 
-## 👥 Team GeoShield
+## 👤 Major Project Maintainer
 
-| Name | Roll No |
-|------|----------|
-| **Arghya Bose** | 24155380 |
-| **Arindam Tripathi** | 24155614 |
-| **Arnab Pal** | 24155615 |
-| **Aaditree Shreya** | 24155371 |
-| **Ankan Nag** | 2405791 |
-| **Akash Das** | 24155155 |
+**Yash Agarwal** — B.Tech ECE (EC-ACT), JIIT, Batch 2027
+
+This major-project adaptation preserves the upstream Git history and credits the
+original GeoShield contributors in [NOTICE.md](NOTICE.md). New development and
+validation in this repository are maintained by Yash Agarwal.
 
 ---
 
@@ -1144,8 +1062,8 @@ cd geo-shield && npm install && npm run build:win
 
 ### 🛡️ GeoShield — Protecting North Eastern India
 
-**Built with ❤️ for Smart India Hackathon 2026**
+**Major-project adaptation maintained by Yash Agarwal**
 
-[![GitHub](https://img.shields.io/badge/GitHub-Officialarghya29-181717?style=for-the-badge&logo=github)](https://github.com/officialarghya29/GeoShield)
+[![GitHub](https://img.shields.io/badge/GitHub-YashAgarwal--31-181717?style=for-the-badge&logo=github)](https://github.com/YashAgarwal-31/GeoShield-AI-Landslide-Early-Warning-System)
 
 </div>
