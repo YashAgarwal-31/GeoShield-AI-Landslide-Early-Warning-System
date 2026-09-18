@@ -6,7 +6,7 @@ import json
 import random
 import math
 import numpy as np
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from app.database import SessionLocal, engine, Base
 from app.models import (
     SensorStation, SensorReading, RiskAssessment, Alert,
@@ -121,7 +121,7 @@ NER_ROADS = [
 
 def _random_sensor_reading(station, hours_ago=0):
     """Generate realistic sensor readings with weather correlation."""
-    now = datetime.utcnow() - timedelta(hours=hours_ago)
+    now = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(hours=hours_ago)
 
     # Weather patterns - monsoon season simulation
     hour_of_day = now.hour
@@ -213,7 +213,7 @@ def seed_database():
         print("[Seed] Seeding weather data...")
         for s in NER_STATIONS:
             for hours_ago in range(0, 168, 3):  # Every 3 hours
-                now = datetime.utcnow() - timedelta(hours=hours_ago)
+                now = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(hours=hours_ago)
                 rainfall_1h = round(max(0, random.gauss(15, 12)), 1)
                 weather = WeatherData(
                     station_id=s["station_id"],
@@ -267,7 +267,7 @@ def seed_database():
             for _ in range(num_alerts):
                 s = random.choice(alert_stations)
                 rl = random.choice(risk_levels)
-                alert_time = datetime.utcnow() - timedelta(days=day_offset, hours=random.randint(0, 23))
+                alert_time = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=day_offset, hours=random.randint(0, 23))
                 pop_map = {"low": 100, "moderate": 800, "high": 3000, "critical": 12000}
                 alert = Alert(
                     station_id=s["station_id"],
