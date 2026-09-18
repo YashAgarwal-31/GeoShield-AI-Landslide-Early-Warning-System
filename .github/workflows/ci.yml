@@ -78,7 +78,18 @@ jobs:
         run: |
           set -euo pipefail
           JWT_SECRET_VALUE="$(python -c 'import secrets; print(secrets.token_hex(32))')"
-          docker run -d --name geoshield-ci             -p 127.0.0.1:8000:8000             -e APP_ENV=production             -e JWT_SECRET="$JWT_SECRET_VALUE"             -e ENABLE_DEMO_USERS=false             -e WEATHER_LIVE_ENABLED=false             -e MODEL_TRAINING_ENABLED=false             geoshield:ci
+          ADMIN_PASSWORD="$(python -c 'import secrets; print(secrets.token_urlsafe(24))')"
+
+          docker run -d --name geoshield-ci \
+            -p 127.0.0.1:8000:8000 \
+            -e APP_ENV=production \
+            -e JWT_SECRET="$JWT_SECRET_VALUE" \
+            -e ENABLE_DEMO_USERS=false \
+            -e GEOSHIELD_ADMIN_EMAIL=ci-admin@example.invalid \
+            -e GEOSHIELD_ADMIN_PASSWORD="$ADMIN_PASSWORD" \
+            -e WEATHER_LIVE_ENABLED=false \
+            -e MODEL_TRAINING_ENABLED=false \
+            geoshield:ci
 
           cleanup() {
             docker logs geoshield-ci || true
@@ -99,4 +110,15 @@ jobs:
 
           curl --fail --silent http://127.0.0.1:8000/api/dashboard/stats >/dev/null
           curl --fail --silent http://127.0.0.1:8000/api/sensors/stations >/dev/null
-          curl --fail --silent             -H 'Content-Type: application/json'             -d '{"latitude":25.58,"longitude":91.89}'             http://127.0.0.1:8000/api/predict >/dev/null
+
+          curl --fail --silent \
+            -H 'Content-Type: application/json' \
+            -d '{"latitude":25.58,"longitude":91.89}' \
+            http://127.0.0.1:8000/api/predict >/dev/null
+
+          curl --fail --silent \
+            -X POST \
+            -H 'Content-Type: application/x-www-form-urlencoded' \
+            --data-urlencode 'email=ci-admin@example.invalid' \
+            --data-urlencode "password=$ADMIN_PASSWORD" \
+            http://127.0.0.1:8000/api/auth/login >/dev/null
