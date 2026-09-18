@@ -143,7 +143,8 @@ function LoginPage() {
     } catch (err: any) {
       const status = err.response?.status;
       const detail = err.response?.data?.detail;
-      const currentApiUrl = getServerUrl() ? `http://${getServerUrl()}/api` : '/api';
+      const saved = normalizeServerBase(getServerUrl());
+      const currentApiUrl = saved ? `${saved}/api` : '/api';
       const isNetworkError = !err.response || status === 0 || status === undefined || err.code === 'ECONNREFUSED' || err.code === 'ENOTFOUND' || err.code === 'ERR_NETWORK';
       if (isNetworkError) {
         setError(`Cannot reach backend at ${currentApiUrl}. Check network or set Backend URL in Settings.`);
@@ -161,23 +162,18 @@ function LoginPage() {
     setLoading(true);
     setError('');
     try {
-      const res = await loginAPI(email || 'admin@geoshield.gov.in', password || 'admin123');
-      setStoredToken(res.data.token);
-      login(res.data.user.name, res.data.user.role);
-      navigate('/');
-    } catch (err: any) {
-      const status = err.response?.status;
-      const detail = err.response?.data?.detail;
-      const currentApiUrl = getServerUrl() ? `http://${getServerUrl()}/api` : '/api';
-      const isNetworkError = !err.response || status === 0 || status === undefined || err.code === 'ECONNREFUSED' || err.code === 'ENOTFOUND' || err.code === 'ERR_NETWORK';
-      if (isNetworkError) {
-        setError(`Cannot reach backend at ${currentApiUrl}. Check network or set Backend URL in Settings.`);
-      } else if (status === 401) {
-        setError(detail || 'Invalid email or password');
+      const res = await api.get('/health');
+      if (res.data?.status === 'healthy') {
+        setError('Backend connection successful.');
       } else {
-        setError(detail || `Login failed (HTTP ${status || 'error'})`);
+        setError('Backend responded, but health status was unexpected.');
       }
-      console.error('Login error:', err);
+    } catch (err: any) {
+      const saved = normalizeServerBase(getServerUrl());
+      const currentApiUrl = saved ? `${saved}/api` : '/api';
+      setError(`Cannot reach backend at ${currentApiUrl}. Check network or set Backend URL in Settings.`);
+      console.error('Connection test error:', err);
+    } finally {
       setLoading(false);
     }
   };
