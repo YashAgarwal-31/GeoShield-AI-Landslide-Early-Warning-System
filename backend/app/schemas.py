@@ -106,6 +106,34 @@ class UserPasswordRequest(BaseModel):
     password: str = Field(..., min_length=8, max_length=128)
 
 
+class SensorStationCreateRequest(BaseModel):
+    station_id: str = Field(..., pattern=r"^NER-\d{3}$")
+    name: str = Field(..., min_length=2, max_length=120)
+    latitude: float = Field(..., ge=-90, le=90)
+    longitude: float = Field(..., ge=-180, le=180)
+    state: str = Field(..., min_length=2, max_length=100)
+    district: str = Field(..., min_length=2, max_length=100)
+    village: str = Field(default="", max_length=120)
+    elevation: float = Field(default=0, ge=-500, le=9000)
+    slope_angle: float = Field(default=0, ge=0, le=90)
+    soil_type: str = Field(default="unknown", max_length=100)
+    vegetation_cover: float = Field(default=0, ge=0, le=100)
+
+
+class SensorStationUpdateRequest(BaseModel):
+    name: Optional[str] = Field(None, min_length=2, max_length=120)
+    latitude: Optional[float] = Field(None, ge=-90, le=90)
+    longitude: Optional[float] = Field(None, ge=-180, le=180)
+    state: Optional[str] = Field(None, min_length=2, max_length=100)
+    district: Optional[str] = Field(None, min_length=2, max_length=100)
+    village: Optional[str] = Field(None, max_length=120)
+    elevation: Optional[float] = Field(None, ge=-500, le=9000)
+    slope_angle: Optional[float] = Field(None, ge=0, le=90)
+    soil_type: Optional[str] = Field(None, max_length=100)
+    vegetation_cover: Optional[float] = Field(None, ge=0, le=100)
+    is_active: Optional[bool] = None
+
+
 class SensorReadingIngestRequest(BaseModel):
     external_id: Optional[str] = Field(None, min_length=3, max_length=128)
     rainfall_mm: float = Field(default=0, ge=0, le=1000)
