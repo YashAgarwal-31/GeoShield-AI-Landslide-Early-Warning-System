@@ -142,6 +142,8 @@ export interface Station {
     soil_moisture: number;
     ground_displacement: number;
     timestamp: string;
+    source?: string | null;
+    external_id?: string | null;
   } | null;
   risk: {
     level: string;
@@ -313,12 +315,60 @@ export const getRainfallTrend = () => api.get<{ timestamp: string; avg_rainfall:
 export const getRiskTrend = () => api.get<{ timestamp: string; avg_risk: number }[]>('/dashboard/risk-trend');
 export const getStateSummary = () => api.get<{ state: string; stations: number; avg_risk_score: number; critical_count: number }[]>('/dashboard/state-summary');
 
+export interface ReadinessResponse {
+  status: string;
+  database: string;
+  environment: string;
+  timestamp: string;
+}
+export const getReadiness = () => api.get<ReadinessResponse>('/health/ready');
+
+export interface UserAccount {
+  id: number;
+  email: string;
+  name: string;
+  role: 'admin' | 'field_officer' | 'district_admin' | 'citizen';
+  is_active: boolean;
+  created_at: string | null;
+  updated_at: string | null;
+  last_login_at: string | null;
+}
+
+export const getUsers = () => api.get<UserAccount[]>('/users');
+export const createUser = (data: { email: string; name: string; password: string; role: UserAccount['role'] }) =>
+  api.post<UserAccount>('/users', data);
+export const setUserStatus = (id: number, isActive: boolean) =>
+  api.put<UserAccount>(`/users/${id}/status`, { is_active: isActive });
+export const resetUserPassword = (id: number, password: string) =>
+  api.put(`/users/${id}/password`, { password });
+
 // --- Sensors ---
 export const getStations = () => api.get<Station[]>('/sensors/stations');
 export const getStation = (id: string) => api.get(`/sensors/stations/${id}`);
 export const getStationHistory = (id: string, hours = 24) => api.get(`/sensors/stations/${id}/history?hours=${hours}`);
 export const getAllLatestReadings = () =>
   api.get<{ station_id: string; rainfall_mm: number; soil_moisture: number; ground_displacement: number; timestamp: string }[]>('/sensors/readings/latest');
+
+export interface StationCreatePayload {
+  station_id: string;
+  name: string;
+  latitude: number;
+  longitude: number;
+  state: string;
+  district: string;
+  village?: string;
+  elevation?: number;
+  slope_angle?: number;
+  soil_type?: string;
+  vegetation_cover?: number;
+}
+
+export const createStation = (data: StationCreatePayload) =>
+  api.post('/sensors/stations', data);
+
+export const updateStation = (stationId: string, data: Partial<StationCreatePayload> & { is_active?: boolean }) =>
+  api.put(`/sensors/stations/${stationId}`, data);
+
 
 // --- Alerts ---
 export const getAlerts = (params?: { status?: string; risk_level?: string }) =>
