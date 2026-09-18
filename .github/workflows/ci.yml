@@ -97,7 +97,7 @@ jobs:
           trap cleanup EXIT
 
           for i in $(seq 1 40); do
-            if curl -fsS http://127.0.0.1:18000/api/health >/tmp/health.json; then
+            if curl -fsS http://127.0.0.1:18000/api/health/ready >/tmp/health.json; then
               break
             fi
             sleep 1
@@ -107,7 +107,8 @@ jobs:
           import json
           with open("/tmp/health.json", encoding="utf-8") as f:
               data = json.load(f)
-          assert data["status"] == "healthy", data
+          assert data["status"] == "ready", data
+          assert data["database"] == "connected", data
           PY
 
           curl -fsS http://127.0.0.1:18000/ >/tmp/index.html
@@ -146,7 +147,7 @@ jobs:
             -H "Content-Type: application/x-www-form-urlencoded" \
             --data "email=admin%40geoshield.gov.in&password=admin123" \
             http://127.0.0.1:18000/api/auth/login)
-          test "$demo_login_code" = "503"
+          test "$demo_login_code" = "401"
 
           docker inspect -f '{{.State.Running}}' geoshield-smoke | grep -qx true
 
@@ -176,7 +177,7 @@ jobs:
           trap cleanup EXIT
 
           for attempt in {1..45}; do
-            if curl --fail --silent http://127.0.0.1:8000/api/health >/dev/null; then
+            if curl --fail --silent http://127.0.0.1:8000/api/health/ready >/dev/null; then
               break
             fi
             if [ "$attempt" -eq 45 ]; then
