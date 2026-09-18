@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   getDashboardStats, getRainfallTrend, getRiskTrend, getStateSummary,
   getRiskHeatmap, getStations, getAlerts, acknowledgeAlert, resolveAlert,
-  DashboardStats, HeatmapPoint, Station, Alert,
+  getAlertWebSocketUrl, DashboardStats, HeatmapPoint, Station, Alert,
 } from '../services/api';
 import { t } from '../i18n/translations';
 import { useAuth } from '../App';
@@ -44,35 +44,74 @@ export default function Dashboard() {
     return () => clearInterval(clock);
   }, []);
 
+  const fetchData = useCallback(async () => {
+    try {
+      // Fetch each endpoint independently so one failure doesn't break all
+      const settle = <T,>(p: Promise<T>): Promise<T | null> => p.catch(() => null);
+      const [statsRes, rainRes, riskRes, stateRes, stationsRes, alertsRes] = await Promise.all([
+        settle(getDashboardStats()),
+        settle(getRainfallTrend()),
+        settle(getRiskTrend()),
+        settle(getStateSummary()),
+        settle(getStations()),
+        settle(getAlerts({ status: 'active' })),
+      ]);
+      if (statsRes?.data) setStats(statsRes.data);
+      if (rainRes?.data) setRainfall(rainRes.data);
+      if (riskRes?.data) setRiskTrend(riskRes.data);
+      if (stateRes?.data) setStateData(stateRes.data);
+      if (stationsRes?.data) setStations(stationsRes.data);
+      if (alertsRes?.data) setAlertsData(alertsRes.data);
+    } catch (e) {
+      console.error('Dashboard fetch error:', e);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        // Fetch each endpoint independently so one failure doesn't break all
-        const settle = <T,>(p: Promise<T>): Promise<T | null> => p.catch(() => null);
-        const [statsRes, rainRes, riskRes, stateRes, stationsRes, alertsRes] = await Promise.all([
-          settle(getDashboardStats()),
-          settle(getRainfallTrend()),
-          settle(getRiskTrend()),
-          settle(getStateSummary()),
-          settle(getStations()),
-          settle(getAlerts({ status: 'active' })),
-        ]);
-        if (statsRes?.data) setStats(statsRes.data);
-        if (rainRes?.data) setRainfall(rainRes.data);
-        if (riskRes?.data) setRiskTrend(riskRes.data);
-        if (stateRes?.data) setStateData(stateRes.data);
-        if (stationsRes?.data) setStations(stationsRes.data);
-        if (alertsRes?.data) setAlertsData(alertsRes.data);
-      } catch (e) {
-        console.error('Dashboard fetch error:', e);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchData();
     const interval = setInterval(fetchData, 30000);
     return () => clearInterval(interval);
-  }, []);
+  }, [fetchData]);
+
+  useEffect(() => {
+    let socket: WebSocket | null = null;
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+    let stopped = false;
+
+    const connect = () => {
+      if (stopped) return;
+      try {
+        socket = new WebSocket(getAlertWebSocketUrl('all'));
+      } catch {
+        reconnectTimer = setTimeout(connect, 3000);
+        return;
+      }
+
+      socket.onmessage = (event) => {
+        try {
+          const message = JSON.parse(event.data);
+          if (['sensor.reading', 'alert.created', 'alert.updated', 'alerts.reset'].includes(message.type)) {
+            fetchData();
+          }
+        } catch {
+          // Ignore malformed/non-operational frames; polling remains the fallback.
+        }
+      };
+      socket.onerror = () => socket?.close();
+      socket.onclose = (event) => {
+        if (event.code !== 4401 && !stopped) reconnectTimer = setTimeout(connect, 3000);
+      };
+    };
+
+    connect();
+    return () => {
+      stopped = true;
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+      socket?.close();
+    };
+  }, [fetchData]);
 
   if (loading) {
     return (
