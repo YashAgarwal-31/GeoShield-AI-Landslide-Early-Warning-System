@@ -73,6 +73,80 @@ jobs:
       - name: Docker build
         run: docker build -t geoshield:ci .
 
+      - name: Runtime smoke test
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run -d --name geoshield-smoke \
+            -p 127.0.0.1:18000:8000 \
+            -e APP_ENV=production \
+            -e JWT_SECRET=ci-runtime-secret-0123456789abcdef0123456789abcdef \
+            -e ENABLE_DEMO_USERS=false \
+            -e WEATHER_LIVE_ENABLED=false \
+            -e MODEL_TRAINING_ENABLED=false \
+            -e TRUST_PROXY_HEADERS=false \
+            geoshield:ci
+
+          cleanup() {
+            docker logs geoshield-smoke || true
+            docker rm -f geoshield-smoke || true
+          }
+          trap cleanup EXIT
+
+          for i in $(seq 1 40); do
+            if curl -fsS http://127.0.0.1:18000/api/health >/tmp/health.json; then
+              break
+            fi
+            sleep 1
+          done
+
+          python - <<'PY'
+          import json
+          with open("/tmp/health.json", encoding="utf-8") as f:
+              data = json.load(f)
+          assert data["status"] == "healthy", data
+          PY
+
+          curl -fsS http://127.0.0.1:18000/ >/tmp/index.html
+          grep -qi "<!doctype html" /tmp/index.html
+
+          curl -fsS http://127.0.0.1:18000/api/dashboard/stats >/tmp/dashboard.json
+          python - <<'PY'
+          import json
+          with open("/tmp/dashboard.json", encoding="utf-8") as f:
+              data = json.load(f)
+          assert data["total_stations"] == 20, data
+          assert "risk_distribution" in data, data
+          PY
+
+          curl -fsS \
+            -H "Content-Type: application/json" \
+            -d '{"latitude":25.58,"longitude":91.89}' \
+            http://127.0.0.1:18000/api/predict >/tmp/predict.json
+          python - <<'PY'
+          import json
+          with open("/tmp/predict.json", encoding="utf-8") as f:
+              data = json.load(f)
+          assessment = data["risk_assessment"]
+          assert 0 <= assessment["risk_score"] <= 100, assessment
+          assert assessment["risk_level"] in {"low", "moderate", "high", "critical"}, assessment
+          PY
+
+          unauth_code=$(curl -sS -o /tmp/unauth.json -w "%{http_code}" \
+            -H "Content-Type: application/json" \
+            -d '{"station_id":"NER-001","intensity":"high"}' \
+            http://127.0.0.1:18000/api/simulate/landslide)
+          test "$unauth_code" = "401"
+
+          demo_login_code=$(curl -sS -o /tmp/login.json -w "%{http_code}" \
+            -X POST \
+            -H "Content-Type: application/x-www-form-urlencoded" \
+            --data "email=admin%40geoshield.gov.in&password=admin123" \
+            http://127.0.0.1:18000/api/auth/login)
+          test "$demo_login_code" = "503"
+
+          docker inspect -f '{{.State.Running}}' geoshield-smoke | grep -qx true
+
       - name: Production container smoke test
         shell: bash
         run: |
