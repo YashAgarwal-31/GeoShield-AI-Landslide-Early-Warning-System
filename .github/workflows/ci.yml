@@ -259,3 +259,111 @@ jobs:
         run: |
           python -m alembic upgrade head
           python -m pytest tests/test_operational_core.py -q
+
+      - name: Verify persistence across application restart
+        working-directory: backend
+        shell: bash
+        run: |
+          set -euo pipefail
+          APP_PID=""
+          PORT=18081
+          BASE="http://127.0.0.1:${PORT}"
+          LOG="/tmp/geoshield-persistence.log"
+
+          stop_app() {
+            if [ -n "${APP_PID}" ] && kill -0 "${APP_PID}" 2>/dev/null; then
+              kill "${APP_PID}"
+              wait "${APP_PID}" || true
+            fi
+            APP_PID=""
+          }
+
+          cleanup() {
+            stop_app
+            cat "${LOG}" || true
+          }
+          trap cleanup EXIT
+
+          start_app() {
+            : >"${LOG}"
+            python -m uvicorn app.main:app --host 127.0.0.1 --port "${PORT}" >"${LOG}" 2>&1 &
+            APP_PID=$!
+            for attempt in $(seq 1 40); do
+              if curl -fsS "${BASE}/api/health/ready" >/dev/null; then
+                return
+              fi
+              if ! kill -0 "${APP_PID}" 2>/dev/null; then
+                cat "${LOG}"
+                exit 1
+              fi
+              sleep 1
+            done
+            cat "${LOG}"
+            echo "GeoShield did not become ready"
+            exit 1
+          }
+
+          admin_login() {
+            curl -fsS -X POST               -H 'Content-Type: application/x-www-form-urlencoded'               --data-urlencode "email=${GEOSHIELD_ADMIN_EMAIL}"               --data-urlencode "password=${GEOSHIELD_ADMIN_PASSWORD}"               "${BASE}/api/auth/login"
+          }
+
+          token_from_json() {
+            python -c 'import json,sys; print(json.load(sys.stdin)["token"])'
+          }
+
+          start_app
+          ADMIN_TOKEN="$(admin_login | token_from_json)"
+
+          curl -fsS -X POST             -H "Authorization: Bearer ${ADMIN_TOKEN}"             -H 'Content-Type: application/json'             -d '{"station_id":"NER-997","name":"Persistence CI Station","latitude":25.60,"longitude":91.90,"state":"Meghalaya","district":"East Khasi Hills","village":"Persistence Village","elevation":1200,"slope_angle":32,"soil_type":"loamy","vegetation_cover":55}'             "${BASE}/api/sensors/stations" >/tmp/persist-station.json
+
+          curl -fsS -X POST             -H "Authorization: Bearer ${ADMIN_TOKEN}"             -H 'Content-Type: application/json'             -d '{"email":"persistence-ci@example.invalid","name":"Persistence Citizen","password":"PersistencePass123!","role":"citizen"}'             "${BASE}/api/users" >/tmp/persist-user.json
+
+          CITIZEN_TOKEN="$(curl -fsS -X POST             -H 'Content-Type: application/x-www-form-urlencoded'             --data-urlencode 'email=persistence-ci@example.invalid'             --data-urlencode 'password=PersistencePass123!'             "${BASE}/api/auth/login" | token_from_json)"
+
+          python - <<'PY'
+          from pathlib import Path
+          Path("/tmp/persistence-evidence.png").write_bytes(
+              b"\x89PNG\r\n\x1a\nGeoShield persistence evidence"
+          )
+          PY
+
+          curl -fsS -X POST             -H "Authorization: Bearer ${CITIZEN_TOKEN}"             -F 'report_type=crack'             -F 'description=Persistent slope crack report created before application restart'             -F 'latitude=25.58'             -F 'longitude=91.89'             -F 'reporter_name=Persistence Citizen'             -F 'reporter_language=en'             -F 'attachment=@/tmp/persistence-evidence.png;type=image/png'             "${BASE}/api/reports" >/tmp/persist-report.json
+
+          REPORT_ID="$(python -c 'import json; print(json.load(open("/tmp/persist-report.json"))["report"]["id"])')"
+
+          stop_app
+          start_app
+
+          ADMIN_TOKEN="$(admin_login | token_from_json)"
+          CITIZEN_TOKEN="$(curl -fsS -X POST             -H 'Content-Type: application/x-www-form-urlencoded'             --data-urlencode 'email=persistence-ci@example.invalid'             --data-urlencode 'password=PersistencePass123!'             "${BASE}/api/auth/login" | token_from_json)"
+
+          curl -fsS             -H "Authorization: Bearer ${ADMIN_TOKEN}"             "${BASE}/api/sensors/stations/manage" >/tmp/persist-stations-after.json
+          python - <<'PY'
+          import json
+          rows = json.load(open("/tmp/persist-stations-after.json"))
+          station = next((row for row in rows if row["station_id"] == "NER-997"), None)
+          assert station is not None, rows
+          assert station["name"] == "Persistence CI Station", station
+          assert station["is_active"] is True, station
+          PY
+
+          curl -fsS             -H "Authorization: Bearer ${CITIZEN_TOKEN}"             "${BASE}/api/reports" >/tmp/persist-reports-after.json
+          REPORT_ID="${REPORT_ID}" python - <<'PY'
+          import json, os
+          rows = json.load(open("/tmp/persist-reports-after.json"))
+          report_id = int(os.environ["REPORT_ID"])
+          report = next((row for row in rows if row["id"] == report_id), None)
+          assert report is not None, rows
+          assert report["submitted_by"] == "persistence-ci@example.invalid", report
+          assert report["attachment_filename"], report
+          PY
+
+          curl -fsS             -H "Authorization: Bearer ${CITIZEN_TOKEN}"             "${BASE}/api/reports/${REPORT_ID}/attachment"             -o /tmp/persistence-evidence-after.png
+          python - <<'PY'
+          from pathlib import Path
+          data = Path("/tmp/persistence-evidence-after.png").read_bytes()
+          assert data.startswith(b"\x89PNG\r\n\x1a\n"), data[:16]
+          assert b"GeoShield persistence evidence" in data
+          PY
+
+          stop_app
