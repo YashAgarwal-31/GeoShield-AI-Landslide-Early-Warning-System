@@ -82,6 +82,9 @@ jobs:
             -e APP_ENV=production \
             -e JWT_SECRET=ci-runtime-secret-0123456789abcdef0123456789abcdef \
             -e ENABLE_DEMO_USERS=false \
+            -e GEOSHIELD_ADMIN_EMAIL=runtime-admin@example.invalid \
+            -e GEOSHIELD_ADMIN_PASSWORD=runtime-ci-admin-password-12345 \
+            -e AUTO_SEED_REFERENCE_DATA=true \
             -e WEATHER_LIVE_ENABLED=false \
             -e MODEL_TRAINING_ENABLED=false \
             -e TRUST_PROXY_HEADERS=false \
@@ -161,6 +164,7 @@ jobs:
             -e ENABLE_DEMO_USERS=false \
             -e GEOSHIELD_ADMIN_EMAIL=ci-admin@example.invalid \
             -e GEOSHIELD_ADMIN_PASSWORD="$ADMIN_PASSWORD" \
+            -e AUTO_SEED_REFERENCE_DATA=true \
             -e WEATHER_LIVE_ENABLED=false \
             -e MODEL_TRAINING_ENABLED=false \
             geoshield:ci
