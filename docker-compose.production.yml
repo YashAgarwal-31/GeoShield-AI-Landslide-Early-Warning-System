@@ -1,0 +1,44 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: geoshield
+      POSTGRES_USER: geoshield
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - geoshield_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U geoshield -d geoshield"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
+  geoshield:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:8000:8000"
+    environment:
+      APP_ENV: production
+      DATABASE_URL: postgresql+psycopg://geoshield:${POSTGRES_PASSWORD}@postgres:5432/geoshield
+      JWT_SECRET: ${JWT_SECRET}
+      ENABLE_DEMO_USERS: "false"
+      GEOSHIELD_ADMIN_EMAIL: ${GEOSHIELD_ADMIN_EMAIL}
+      GEOSHIELD_ADMIN_PASSWORD: ${GEOSHIELD_ADMIN_PASSWORD}
+      GEOSHIELD_ADMIN_NAME: ${GEOSHIELD_ADMIN_NAME:-GeoShield Admin}
+      AUTO_SEED_REFERENCE_DATA: ${AUTO_SEED_REFERENCE_DATA:-true}
+      WEATHER_LIVE_ENABLED: ${WEATHER_LIVE_ENABLED:-true}
+      MODEL_TRAINING_ENABLED: "false"
+      SENSOR_INGEST_ENABLED: ${SENSOR_INGEST_ENABLED:-true}
+      SENSOR_INGEST_API_KEY: ${SENSOR_INGEST_API_KEY}
+      TRUST_PROXY_HEADERS: "false"
+      CORS_ALLOWED_ORIGINS: http://127.0.0.1:8000,http://localhost:8000
+    restart: unless-stopped
+
+volumes:
+  geoshield_postgres_data:
