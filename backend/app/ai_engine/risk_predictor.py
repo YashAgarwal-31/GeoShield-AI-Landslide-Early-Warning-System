@@ -11,13 +11,26 @@ import csv
 from datetime import datetime, timedelta
 
 # Bump this to force re-training when model architecture changes
-_MODEL_VERSION = "2.1"
+_MODEL_VERSION = "2.2"
 
 # Training data path - can be overridden via env var for Docker deployments
 TRAINING_DATA_PATH = os.getenv(
     "TRAINING_DATA_PATH",
     os.path.join(os.path.dirname(__file__), "..", "..", "..", "datasets", "processed", "real_ner_training_data.csv")
 )
+
+
+def _env_bool(name: str, default: bool = False) -> bool:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _synthetic_fallback_allowed() -> bool:
+    app_env = os.getenv("APP_ENV", "demo").strip().lower()
+    production = app_env in {"prod", "production"}
+    return _env_bool("ALLOW_SYNTHETIC_MODEL_FALLBACK", default=not production)
 
 
 class LandslideRiskPredictor:
@@ -36,6 +49,8 @@ class LandslideRiskPredictor:
         self.CACHE_FILE = os.path.join(self.model_dir, "geoshield_model.pkl")
         self.model = None
         self.scaler = None
+        self.training_source = "unknown"
+        self.training_samples = 0
         # Features matching real training data format
         self.feature_names = [
             "slope", "elevation", "aspect",
@@ -63,6 +78,8 @@ class LandslideRiskPredictor:
                 return False
             self.model = cached["model"]
             self.scaler = cached["scaler"]
+            self.training_source = cached.get("training_source", "unknown")
+            self.training_samples = int(cached.get("training_samples", 0) or 0)
             print(f"[GeoShield AI] Loaded cached model from {self.CACHE_FILE}")
             return True
         except Exception as e:
@@ -76,6 +93,8 @@ class LandslideRiskPredictor:
                 "version": _MODEL_VERSION,
                 "model": self.model,
                 "scaler": self.scaler,
+                "training_source": self.training_source,
+                "training_samples": self.training_samples,
             }, self.CACHE_FILE)
             print(f"[GeoShield AI] Model cached to {self.CACHE_FILE}")
         except Exception as e:
@@ -128,6 +147,8 @@ class LandslideRiskPredictor:
             # Labels are generated/derived prototype labels, not field ground truth.
             X = real_data
             n_samples = len(X)
+            self.training_source = "mixed_provenance_dataset"
+            self.training_samples = n_samples
 
             # Convert binary landslide labels (0/1) to 4-class risk levels
             # by combining the ground-truth label with a severity score
@@ -161,10 +182,20 @@ class LandslideRiskPredictor:
 
             print(f"[GeoShield AI] Label distribution: low={np.sum(y==0)}, moderate={np.sum(y==1)}, high={np.sum(y==2)}, critical={np.sum(y==3)}")
         else:
-            # Fallback to synthetic data
-            print("[GeoShield AI] Using synthetic training data (real data not found)")
+            if not _synthetic_fallback_allowed():
+                raise RuntimeError(
+                    "GeoShield ML training data is unavailable or invalid and "
+                    "synthetic fallback is disabled for this runtime. Restore "
+                    "datasets/processed/real_ner_training_data.csv or configure "
+                    "TRAINING_DATA_PATH explicitly."
+                )
+
+            # Explicit demo/testing fallback only.
+            print("[GeoShield AI] Using explicit synthetic demo training fallback")
             np.random.seed(42)
             n_samples = 5000
+            self.training_source = "synthetic_demo_fallback"
+            self.training_samples = n_samples
             X = np.zeros((n_samples, len(self.feature_names)))
 
             X[:, 0] = np.random.uniform(5, 60, n_samples)  # slope
@@ -361,7 +392,8 @@ class LandslideRiskPredictor:
             "probabilities": prob_dict,
             "model_info": {
                 "type": "RF + GB Ensemble",
-                "training_samples": "12,000 regional and realistically generated NER samples",
+                "training_samples": self.training_samples,
+                "training_source": self.training_source,
                 "features": len(self.feature_names),
                 "feature_names": self.feature_names,
             }
