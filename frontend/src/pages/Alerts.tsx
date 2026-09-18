@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import {
   getAlerts, acknowledgeAlert, resolveAlert, getAlertTimeline, getAlertHistory,
-  Alert as AlertType, TimelineEntry,
+  getAlertWebSocketUrl, Alert as AlertType, TimelineEntry,
 } from '../services/api';
 import { t } from '../i18n/translations';
 import { useAuth } from '../App';
@@ -38,6 +38,7 @@ export default function Alerts() {
   const [timelineSummary, setTimelineSummary] = useState<any>(null);
   const [historyData, setHistoryData] = useState<any[]>([]);
   const [actionFeedback, setActionFeedback] = useState<{id: number; type: 'success' | 'error'; message: string} | null>(null);
+  const [liveConnected, setLiveConnected] = useState(false);
 
   useEffect(() => {
     if (actionFeedback) {
@@ -90,6 +91,56 @@ export default function Alerts() {
     return () => clearInterval(interval);
   }, [fetchAlerts, fetchTimeline, fetchHistory, view]);
 
+  useEffect(() => {
+    let socket: WebSocket | null = null;
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+    let stopped = false;
+
+    const refreshCurrentView = () => {
+      fetchAlerts();
+      if (view === 'timeline') fetchTimeline();
+      if (view === 'history') fetchHistory();
+    };
+
+    const connect = () => {
+      if (stopped) return;
+      try {
+        socket = new WebSocket(getAlertWebSocketUrl('all'));
+      } catch (error) {
+        console.error('Alert WebSocket URL error:', error);
+        reconnectTimer = setTimeout(connect, 3000);
+        return;
+      }
+
+      socket.onopen = () => setLiveConnected(true);
+      socket.onmessage = (event) => {
+        try {
+          const message = JSON.parse(event.data);
+          if (['alert.created', 'alert.updated', 'alerts.reset', 'sensor.reading'].includes(message.type)) {
+            refreshCurrentView();
+          }
+        } catch (error) {
+          console.error('Alert WebSocket message error:', error);
+        }
+      };
+      socket.onerror = () => {
+        socket?.close();
+      };
+      socket.onclose = () => {
+        setLiveConnected(false);
+        if (!stopped) reconnectTimer = setTimeout(connect, 3000);
+      };
+    };
+
+    connect();
+    return () => {
+      stopped = true;
+      setLiveConnected(false);
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+      socket?.close();
+    };
+  }, [fetchAlerts, fetchTimeline, fetchHistory, view]);
+
   const handleAcknowledge = async (id: number) => {
     try {
       await acknowledgeAlert(id);
@@ -128,7 +179,13 @@ export default function Alerts() {
             <Bell className="w-5 h-5 sm:w-6 sm:h-6 text-red-400" />
             {t('alerts')}
           </h1>
-          <p className="text-dark-400 text-xs sm:text-sm mt-1">{t('earlyWarningSubtitle')}</p>
+          <div className="flex items-center gap-2 mt-1">
+            <p className="text-dark-400 text-xs sm:text-sm">{t('earlyWarningSubtitle')}</p>
+            <span className={`inline-flex items-center gap-1 text-[10px] ${liveConnected ? 'text-green-400' : 'text-amber-400'}`}>
+              <Radio className="w-3 h-3" />
+              {liveConnected ? 'LIVE' : 'POLLING'}
+            </span>
+          </div>
         </div>
         <div className="flex gap-2 overflow-x-auto pb-1">
           {[
