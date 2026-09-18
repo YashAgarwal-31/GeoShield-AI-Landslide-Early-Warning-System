@@ -347,6 +347,8 @@ export const getStateSummary = () => api.get<{ state: string; stations: number; 
 export interface ReadinessResponse {
   status: string;
   database: string;
+  ml_training_data: string;
+  synthetic_model_fallback: boolean;
   environment: string;
   timestamp: string;
 }
