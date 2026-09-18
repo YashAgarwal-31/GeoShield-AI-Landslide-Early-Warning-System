@@ -20,6 +20,21 @@
 
 ---
 
+> [!IMPORTANT]
+> **Major-project development repository.** This repository is adapted from
+> [officialarghya29/GeoShield](https://github.com/officialarghya29/GeoShield)
+> and is being extended and validated by **Yash Agarwal**. Original authorship
+> remains visible in the imported history. See [NOTICE.md](NOTICE.md) and
+> [DATA_PROVENANCE.md](DATA_PROVENANCE.md) for lineage and data limitations.
+
+> [!NOTE]
+> This is a research and demonstration prototype, not a certified public-warning
+> system. The current build combines historical/regional inputs with seeded,
+> simulated, and realistically generated samples; it does not ingest a live
+> physical sensor network by default.
+
+---
+
 ## 📋 Table of Contents
 
 1. [Problem Statement](#-problem-statement)

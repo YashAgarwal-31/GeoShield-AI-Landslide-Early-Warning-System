@@ -181,6 +181,19 @@ class TestPredict:
         else:
             assert level == "critical"
 
+    def test_predict_recommendation_matches_final_risk_level(self):
+        """Enhanced risk level and operational guidance must never conflict."""
+        r = client.post("/api/predict", json={
+            "latitude": 27.35, "longitude": 88.62, "slope": 55
+        })
+        assert r.status_code == 200
+        assessment = r.json()["risk_assessment"]
+        recommendation = assessment["recommendation"].lower()
+
+        if assessment["risk_level"] in {"high", "critical"}:
+            assert "normal operations" not in recommendation
+            assert "no immediate action required" not in recommendation
+
     def test_predict_invalid_coords(self):
         r = client.post("/api/predict", json={"latitude": 999, "longitude": 88})
         assert r.status_code == 422  # Validation error

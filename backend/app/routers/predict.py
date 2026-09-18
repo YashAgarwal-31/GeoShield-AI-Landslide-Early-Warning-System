@@ -85,6 +85,15 @@ def predict_risk_at_location(req: PredictRequest, db: Session = Depends(get_db))
     # Also run original predictor for backward compatibility
     prediction = predictor.predict_risk(sensor_data, station_data)
 
+    # The enhanced model owns the final score/level, so any derived guidance
+    # must be recalculated from that same level. Previously a high enhanced
+    # score could be paired with the original model's low-risk recommendation.
+    final_risk_level = enhanced_result["risk_level"]
+    final_recommendation = predictor.recommendation_for_level(
+        final_risk_level,
+        prediction.get("contributing_factors", []),
+    )
+
     return {
         "location": {
             "latitude": req.latitude,
@@ -98,7 +107,8 @@ def predict_risk_at_location(req: PredictRequest, db: Session = Depends(get_db))
         "risk_assessment": {
             **prediction,
             "risk_score": enhanced_result["risk_score"],
-            "risk_level": enhanced_result["risk_level"],
+            "risk_level": final_risk_level,
+            "recommendation": final_recommendation,
             "confidence": enhanced_result["confidence"],
             "source": enhanced_result["source"],
             "feature_importance": enhanced_result.get("feature_importance"),
@@ -106,7 +116,7 @@ def predict_risk_at_location(req: PredictRequest, db: Session = Depends(get_db))
         },
         "model_info": {
             "type": f"{enhanced_result['source'].upper()} + RF+GB Ensemble",
-            "training_samples": "12,000+ real NER samples",
+            "training_samples": "12,000 regional and realistically generated NER samples",
             "features": 9,
             "terrain_enriched": True,
         },

@@ -15,6 +15,7 @@ eggs/
 venv/
 env/
 .venv/
+.audit-venv/
 .env/
 
 # Database

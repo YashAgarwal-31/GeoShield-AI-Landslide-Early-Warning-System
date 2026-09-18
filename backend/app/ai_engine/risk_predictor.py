@@ -353,7 +353,7 @@ class LandslideRiskPredictor:
             "probabilities": prob_dict,
             "model_info": {
                 "type": "RF + GB Ensemble",
-                "training_samples": "2000+ real NER samples",
+                "training_samples": "12,000 regional and realistically generated NER samples",
                 "features": len(self.feature_names),
                 "feature_names": self.feature_names,
             }
@@ -367,6 +367,10 @@ class LandslideRiskPredictor:
             "low": "Normal operations. Continue routine monitoring. Maintain standard alert readiness. No immediate action required."
         }
         return recommendations.get(risk_level, "Continue monitoring.")
+
+    def recommendation_for_level(self, risk_level: str, factors: list | None = None) -> str:
+        """Return operational guidance consistent with the final risk level."""
+        return self._get_recommendation(risk_level, factors or [])
 
 
 # Singleton instance
