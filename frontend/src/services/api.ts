@@ -79,6 +79,28 @@ export const getServerUrl = () => {
   return localStorage.getItem('geoshield_server_url') || '';
 };
 
+export const getAlertWebSocketUrl = (district: string = 'all') => {
+  let serverBase = '';
+
+  if (isElectron() || isMobile()) {
+    const savedUrl = localStorage.getItem('geoshield_server_url');
+    serverBase = savedUrl ? normalizeServerBase(savedUrl) : 'http://localhost:8000';
+  } else if (typeof window !== 'undefined') {
+    serverBase = window.location.origin;
+  }
+
+  const url = new URL(serverBase || 'http://localhost:8000');
+  url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
+  url.pathname = `/ws/alerts/${encodeURIComponent(district || 'all')}`;
+  url.search = '';
+
+  const token = getStoredToken();
+  if (token) {
+    url.searchParams.set('token', token);
+  }
+  return url.toString();
+};
+
 export const isMobileApp = isMobile;
 
 // --- JWT token management ---
