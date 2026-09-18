@@ -9,8 +9,13 @@ import os
 
 from app.database import get_db
 from app.models import SensorStation, SensorReading, RiskAssessment, Alert
-from app.schemas import SensorReadingIngestRequest
+from app.schemas import (
+    SensorReadingIngestRequest,
+    SensorStationCreateRequest,
+    SensorStationUpdateRequest,
+)
 from app.ai_engine.risk_predictor import get_predictor
+from app.auth import require_role
 
 router = APIRouter(prefix="/api/sensors", tags=["sensors"])
 
@@ -50,6 +55,76 @@ def _parse_observed_at(value: str | None) -> datetime:
     if parsed.tzinfo is not None:
         parsed = parsed.astimezone(timezone.utc).replace(tzinfo=None)
     return parsed
+
+
+@router.post("/stations", status_code=201)
+def create_station(
+    payload: SensorStationCreateRequest,
+    db: Session = Depends(get_db),
+    user: dict = Depends(require_role("admin")),
+):
+    existing = (
+        db.query(SensorStation)
+        .filter(SensorStation.station_id == payload.station_id)
+        .first()
+    )
+    if existing:
+        raise HTTPException(status_code=409, detail="Station already exists")
+
+    station = SensorStation(
+        station_id=payload.station_id,
+        name=payload.name.strip(),
+        latitude=payload.latitude,
+        longitude=payload.longitude,
+        state=payload.state.strip(),
+        district=payload.district.strip(),
+        village=payload.village.strip(),
+        elevation=payload.elevation,
+        slope_angle=payload.slope_angle,
+        soil_type=payload.soil_type.strip() or "unknown",
+        vegetation_cover=payload.vegetation_cover,
+        is_active=True,
+    )
+    db.add(station)
+    db.commit()
+    db.refresh(station)
+    return {
+        "id": station.id,
+        "station_id": station.station_id,
+        "name": station.name,
+        "is_active": station.is_active,
+    }
+
+
+@router.put("/stations/{station_id}")
+def update_station(
+    station_id: str,
+    payload: SensorStationUpdateRequest,
+    db: Session = Depends(get_db),
+    user: dict = Depends(require_role("admin", "district_admin")),
+):
+    station = (
+        db.query(SensorStation)
+        .filter(SensorStation.station_id == station_id)
+        .first()
+    )
+    if not station:
+        raise HTTPException(status_code=404, detail="Station not found")
+
+    for field, value in payload.model_dump(exclude_unset=True).items():
+        if isinstance(value, str):
+            value = value.strip()
+        setattr(station, field, value)
+
+    db.commit()
+    db.refresh(station)
+    return {
+        "station_id": station.station_id,
+        "name": station.name,
+        "is_active": station.is_active,
+        "state": station.state,
+        "district": station.district,
+    }
 
 
 @router.get("/stations")
