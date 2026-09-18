@@ -1,0 +1,20 @@
+# Keep Docker builds deterministic and exclude local/runtime state.
+.git
+.github
+**/.git
+**/__pycache__
+**/*.pyc
+**/*.pyo
+**/*.db
+**/*.sqlite
+**/*.sqlite3
+**/.pytest_cache
+**/.coverage
+**/node_modules
+backend/venv
+backend/.venv
+frontend/dist
+.env
+.env.*
+!.env.example
+!.env.production.example
