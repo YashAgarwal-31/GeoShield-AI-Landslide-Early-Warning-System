@@ -247,6 +247,7 @@ export interface Report {
   longitude: number;
   reporter_name: string | null;
   status: string;
+  attachment_filename?: string | null;
   created_at: string;
 }
 
@@ -409,6 +410,8 @@ export const getReports = (params?: { status?: string }) => api.get<Report[]>('/
 export const submitReport = (formData: FormData) => api.post('/reports', formData);
 export const verifyReport = (id: number) => api.put(`/reports/${id}/verify`);
 export const dismissReport = (id: number) => api.put(`/reports/${id}/dismiss`);
+export const getReportAttachment = (id: number) =>
+  api.get<Blob>(`/reports/${id}/attachment`, { responseType: 'blob' });
 
 // --- Roads & Villages ---
 export const getRoads = () => api.get<Road[]>('/roads');
