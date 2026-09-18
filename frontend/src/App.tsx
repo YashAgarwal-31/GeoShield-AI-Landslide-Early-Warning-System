@@ -502,6 +502,11 @@ function MainLayout() {
     setLanguage(newLang);
   };
 
+  const canRunScenario =
+    user?.role === 'admin' ||
+    user?.role === 'district_admin' ||
+    user?.role === 'field_officer';
+
   const navItems = [
     { to: '/', icon: LayoutDashboard, label: t('dashboard'), badge: null },
     { to: '/map', icon: Map, label: t('map'), badge: null },
@@ -510,7 +515,7 @@ function MainLayout() {
     { to: '/stations', icon: Radio, label: t('stations'), badge: null },
     { to: '/satellite', icon: Satellite, label: t('satellite'), badge: null },
     { to: '/flood', icon: Waves, label: t('floodRisk'), badge: null },
-    ...(user?.role === 'admin' || user?.role === 'district_admin'
+    ...(canRunScenario
       ? [{ to: '/simulator', icon: Zap, label: 'Scenario Testing', badge: null }]
       : []),
     ...(user?.role === 'admin'
@@ -769,11 +774,17 @@ function MainLayout() {
             <Route path="/reports" element={<Reports />} />
             <Route path="/stations" element={<Stations />} />
             <Route path="/station/:stationId" element={<StationDetail />} />
-            <Route path="/simulator" element={<Simulator />} />
+            <Route
+              path="/simulator"
+              element={canRunScenario ? <Simulator /> : <Navigate to="/" replace />}
+            />
             <Route path="/satellite" element={<SatelliteData />} />
             <Route path="/flood" element={<FloodData />} />
             {user?.role === 'admin' && <Route path="/admin" element={<AdminOperations />} />}
-            <Route path="/demo" element={<DemoFlow />} />
+            <Route
+              path="/demo"
+              element={canRunScenario ? <DemoFlow /> : <Navigate to="/" replace />}
+            />
           </Routes>
         </main>
       </div>
