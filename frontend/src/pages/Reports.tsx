@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { getReports, submitReport, verifyReport, dismissReport, getReportAttachment, Report } from '../services/api';
+import { getReports, submitReport, verifyReport, dismissReport, getReportAttachment, getAlertWebSocketUrl, Report } from '../services/api';
 import { useAuth } from '../App';
 import { t, getCurrentLanguage } from '../i18n/translations';
 import {
@@ -98,6 +98,44 @@ export default function Reports() {
 
   useEffect(() => {
     fetchReports();
+  }, [fetchReports]);
+
+  useEffect(() => {
+    let socket: WebSocket | null = null;
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+    let stopped = false;
+
+    const connect = () => {
+      if (stopped) return;
+      try {
+        socket = new WebSocket(getAlertWebSocketUrl('all'));
+      } catch {
+        reconnectTimer = setTimeout(connect, 3000);
+        return;
+      }
+
+      socket.onmessage = (event) => {
+        try {
+          const message = JSON.parse(event.data);
+          if (message.type === 'report.created' || message.type === 'report.updated') {
+            fetchReports();
+          }
+        } catch {
+          // Polling/manual refresh remains available if a frame is malformed.
+        }
+      };
+      socket.onerror = () => socket?.close();
+      socket.onclose = (event) => {
+        if (event.code !== 4401 && !stopped) reconnectTimer = setTimeout(connect, 3000);
+      };
+    };
+
+    connect();
+    return () => {
+      stopped = true;
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+      socket?.close();
+    };
   }, [fetchReports]);
 
   const handleSubmit = async (e: React.FormEvent) => {
