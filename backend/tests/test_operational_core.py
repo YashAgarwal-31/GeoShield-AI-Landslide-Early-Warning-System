@@ -1,5 +1,11 @@
 """Operational-core tests for persistent auth, readiness, and sensor ingestion."""
+import os
 import uuid
+
+# Rate limiting is independently configured and is not the subject of this
+# integration module. Disable it here so prior auth calls from the full suite
+# cannot make these tests order-dependent.
+os.environ["RATE_LIMIT_ENABLED"] = "false"
 
 from fastapi.testclient import TestClient
 
