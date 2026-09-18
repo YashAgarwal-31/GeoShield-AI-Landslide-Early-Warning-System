@@ -59,7 +59,12 @@ export default function Stations() {
       socket.onmessage = (event) => {
         try {
           const message = JSON.parse(event.data);
-          if (message.type === 'sensor.reading' || message.type === 'alerts.reset') {
+          if ([
+            'sensor.reading',
+            'alerts.reset',
+            'station.created',
+            'station.updated',
+          ].includes(message.type)) {
             fetchStations();
           }
         } catch {
