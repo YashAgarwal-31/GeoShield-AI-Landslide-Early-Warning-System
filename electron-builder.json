@@ -7,40 +7,58 @@
   },
   "files": [
     "electron/**/*",
-    "frontend/dist/**/*",
-    "branding/**/*",
-    "backend/**/*",
-    "!backend/**/*.pyc",
-    "!backend/__pycache__/**",
-    "!backend/.venv/**",
-    "!backend/**/__pycache__/**"
+    "branding/team_logo.png"
   ],
   "extraResources": [
     {
       "from": "backend",
       "to": "backend",
       "filter": [
-        "**/*.py",
-        "**/*.txt",
-        "**/*.db",
-        "**/*.pkl",
-        "app/seed_*.py"
+        "**/*",
+        "!**/__pycache__/**",
+        "!**/*.pyc",
+        "!venv/**",
+        "!.venv/**"
       ]
+    },
+    {
+      "from": "datasets",
+      "to": "datasets",
+      "filter": [
+        "processed/**/*"
+      ]
+    },
+    {
+      "from": "frontend/dist",
+      "to": "frontend/dist",
+      "filter": [
+        "**/*"
+      ]
+    },
+    {
+      "from": "branding/team_logo.png",
+      "to": "branding/team_logo.png"
     }
   ],
   "linux": {
     "target": [
       {
         "target": "AppImage",
-        "arch": ["x64"]
+        "arch": [
+          "x64"
+        ]
       },
       {
         "target": "deb",
-        "arch": ["x64"]
+        "arch": [
+          "x64"
+        ]
       },
       {
         "target": "tar.gz",
-        "arch": ["x64"]
+        "arch": [
+          "x64"
+        ]
       }
     ],
     "icon": "branding/team_logo.png",
@@ -53,18 +71,24 @@
     "target": [
       {
         "target": "nsis",
-        "arch": ["x64"]
+        "arch": [
+          "x64"
+        ]
       },
       {
         "target": "portable",
-        "arch": ["x64"]
+        "arch": [
+          "x64"
+        ]
       },
       {
         "target": "dir",
-        "arch": ["x64"]
+        "arch": [
+          "x64"
+        ]
       }
     ],
-    "icon": "branding/team_logo.ico",
+    "icon": "branding/team_logo.png",
     "artifactName": "GeoShield-${version}-Setup.${ext}"
   },
   "nsis": {
@@ -74,16 +98,15 @@
     "createDesktopShortcut": true,
     "createStartMenuShortcut": true,
     "shortcutName": "GeoShield",
-    "installerIcon": "branding/team_logo.ico",
-    "uninstallerIcon": "branding/team_logo.ico",
-    "installerHeaderIcon": "branding/team_logo.ico",
     "deleteAppDataOnUninstall": false,
     "allowElevation": true,
     "runAfterFinish": true,
     "artifactName": "GeoShield-${version}-Setup.${ext}"
   },
   "mac": {
-    "target": ["dmg"],
+    "target": [
+      "dmg"
+    ],
     "icon": "branding/team_logo.png",
     "category": "public.app-category.education"
   },
