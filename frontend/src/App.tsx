@@ -1,7 +1,7 @@
 import { HashRouter as Router, Routes, Route, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useState, useEffect, createContext, useContext } from 'react';
 import { t, setLanguage, getCurrentLanguage, Language, languages } from './i18n/translations';
-import { loginAPI, setStoredToken, clearStoredToken, getStoredToken, getAlertStats, getServerUrl, setServerUrl, isMobileApp, normalizeServerBase, api } from './services/api';
+import { loginAPI, setStoredToken, clearStoredToken, getStoredToken, getAlertStats, getReadiness, getAlertWebSocketUrl, getServerUrl, setServerUrl, isMobileApp, normalizeServerBase, api } from './services/api';
 import Dashboard from './pages/Dashboard';
 import RiskMap from './pages/RiskMap';
 import Alerts from './pages/Alerts';
@@ -411,6 +411,8 @@ function MainLayout() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [activeAlerts, setActiveAlerts] = useState(0);
+  const [systemReady, setSystemReady] = useState<boolean | null>(null);
+  const [liveStreamConnected, setLiveStreamConnected] = useState(false);
   const [serverUrl, setServerUrlState] = useState(getServerUrl());
   const { user, logout } = useAuth();
   const location = useLocation();
@@ -425,12 +427,75 @@ function MainLayout() {
       try {
         const res = await getAlertStats();
         setActiveAlerts(res.data.active);
-      } catch { /* ignore */ }
+      } catch { /* polling fallback keeps the last known count */ }
     };
     fetchAlertCount();
     const interval = setInterval(fetchAlertCount, 15000);
     return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    const checkReadiness = async () => {
+      try {
+        const res = await getReadiness();
+        setSystemReady(res.data.status === 'ready' && res.data.database === 'connected');
+      } catch {
+        setSystemReady(false);
+      }
+    };
+    checkReadiness();
+    const interval = setInterval(checkReadiness, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    let socket: WebSocket | null = null;
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+    let stopped = false;
+
+    const refreshAlertCount = async () => {
+      try {
+        const res = await getAlertStats();
+        setActiveAlerts(res.data.active);
+      } catch { /* polling fallback will retry */ }
+    };
+
+    const connect = () => {
+      if (stopped) return;
+      try {
+        socket = new WebSocket(getAlertWebSocketUrl('all'));
+      } catch {
+        reconnectTimer = setTimeout(connect, 3000);
+        return;
+      }
+
+      socket.onopen = () => setLiveStreamConnected(true);
+      socket.onmessage = (event) => {
+        try {
+          const message = JSON.parse(event.data);
+          if (['alert.created', 'alert.updated', 'alerts.reset'].includes(message.type)) {
+            refreshAlertCount();
+          }
+        } catch { /* ignore malformed non-operational frames */ }
+      };
+      socket.onerror = () => socket?.close();
+      socket.onclose = (event) => {
+        setLiveStreamConnected(false);
+        if (event.code === 4401) {
+          logout();
+          return;
+        }
+        if (!stopped) reconnectTimer = setTimeout(connect, 3000);
+      };
+    };
+
+    connect();
+    return () => {
+      stopped = true;
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+      socket?.close();
+    };
+  }, [logout]);
 
   const handleLangChange = (newLang: Language) => {
     setLangState(newLang);
@@ -651,9 +716,27 @@ function MainLayout() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
               </svg>
             </button>
-            <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-green-600/10 border border-green-600/20">
-              <Radio className="w-3 h-3 text-green-400" />
-              <span className="text-[10px] text-green-400 font-semibold">SYSTEM ONLINE</span>
+            <div className={`flex items-center gap-2 px-3 py-1 rounded-full border ${
+              systemReady === true
+                ? 'bg-green-600/10 border-green-600/20'
+                : systemReady === false
+                  ? 'bg-red-600/10 border-red-600/20'
+                  : 'bg-amber-600/10 border-amber-600/20'
+            }`}>
+              <Radio className={`w-3 h-3 ${
+                systemReady === true ? 'text-green-400' : systemReady === false ? 'text-red-400' : 'text-amber-400'
+              }`} />
+              <span className={`text-[10px] font-semibold ${
+                systemReady === true ? 'text-green-400' : systemReady === false ? 'text-red-400' : 'text-amber-400'
+              }`}>
+                {systemReady === true ? 'SYSTEM READY' : systemReady === false ? 'SYSTEM OFFLINE' : 'CHECKING SYSTEM'}
+              </span>
+              {systemReady === true && (
+                <span
+                  className={`w-1.5 h-1.5 rounded-full ${liveStreamConnected ? 'bg-green-400' : 'bg-amber-400'}`}
+                  title={liveStreamConnected ? 'Live alert stream connected' : 'Live stream reconnecting; polling fallback active'}
+                />
+              )}
             </div>
             <span className="text-xs text-dark-400 hidden md:inline">NER Operational Monitoring Platform</span>
           </div>
