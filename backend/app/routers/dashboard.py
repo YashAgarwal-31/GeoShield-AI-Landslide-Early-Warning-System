@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from sqlalchemy import func, desc, and_
 from sqlalchemy.orm import subqueryload
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from app.database import get_db
 from app.models import (
     SensorStation, SensorReading, RiskAssessment, Alert,
@@ -69,7 +69,7 @@ def get_dashboard_stats(db: Session = Depends(get_db)):
     avg_risk = (sum(current_scores) / len(current_scores)) if current_scores else 0
 
     # Recent reports count (last 24h)
-    yesterday = datetime.utcnow() - timedelta(hours=24)
+    yesterday = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(hours=24)
     recent_reports = db.query(CitizenReport).filter(
         CitizenReport.created_at >= yesterday
     ).count()
@@ -95,7 +95,7 @@ def get_dashboard_stats(db: Session = Depends(get_db)):
         "total_villages": total_villages,
         "high_risk_villages": high_risk_villages,
         "average_risk_score": round(float(avg_risk), 1),
-        "last_updated": datetime.utcnow().isoformat(),
+        "last_updated": datetime.now(timezone.utc).replace(tzinfo=None).isoformat(),
     }
 
 
@@ -142,7 +142,7 @@ def get_risk_heatmap(db: Session = Depends(get_db)):
 @router.get("/rainfall-trend")
 def get_rainfall_trend(db: Session = Depends(get_db)):
     # Get average rainfall per hour for all stations, last 48 hours
-    since = datetime.utcnow() - timedelta(hours=48)
+    since = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(hours=48)
     readings = db.query(SensorReading).filter(
         SensorReading.timestamp >= since
     ).order_by(SensorReading.timestamp).all()
@@ -163,7 +163,7 @@ def get_rainfall_trend(db: Session = Depends(get_db)):
 
 @router.get("/risk-trend")
 def get_risk_trend(db: Session = Depends(get_db)):
-    since = datetime.utcnow() - timedelta(hours=48)
+    since = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(hours=48)
     assessments = db.query(RiskAssessment).filter(
         RiskAssessment.timestamp >= since
     ).order_by(RiskAssessment.timestamp).all()
