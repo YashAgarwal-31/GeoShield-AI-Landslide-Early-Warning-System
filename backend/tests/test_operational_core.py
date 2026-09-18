@@ -65,6 +65,7 @@ def test_persistent_user_can_be_created_and_authenticated():
     )
     assert login_response.status_code == 200, login_response.text
     assert login_response.json()["user"]["role"] == "field_officer"
+    pre_reset_token = login_response.json()["token"]
 
     new_password = "StrongerPass456!"
     reset_response = client.put(
@@ -73,6 +74,14 @@ def test_persistent_user_can_be_created_and_authenticated():
         headers=_admin_headers(),
     )
     assert reset_response.status_code == 200, reset_response.text
+    assert reset_response.json()["sessions_revoked"] is True
+
+    revoked_session = client.get(
+        "/api/reports",
+        headers={"Authorization": f"Bearer {pre_reset_token}"},
+    )
+    assert revoked_session.status_code == 401
+    assert revoked_session.json()["detail"] == "Session has been revoked"
 
     old_password_login = client.post(
         "/api/auth/login",

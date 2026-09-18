@@ -93,5 +93,10 @@ def reset_user_password(
         raise HTTPException(status_code=404, detail="User not found")
 
     account.password_hash = hash_password(payload.password)
+    account.token_version = int(account.token_version or 0) + 1
     db.commit()
-    return {"status": "success", "id": account.id}
+    return {
+        "status": "success",
+        "id": account.id,
+        "sessions_revoked": True,
+    }

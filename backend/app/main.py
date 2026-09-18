@@ -50,7 +50,7 @@ def _cors_origins() -> list[str]:
 
 from app.database import engine, Base, SessionLocal
 from app.routers import sensors, dashboard, alerts, reports, weather, simulator, satellite, predict, alerts_timeline, flood, ml_enhanced, users
-from app.auth import authenticate_user, create_token, ensure_bootstrap_admin, verify_token
+from app.auth import authenticate_user, create_token, ensure_bootstrap_admin, resolve_token_user
 from app.realtime import alert_manager
 from app.database import get_db
 
@@ -251,11 +251,14 @@ async def websocket_alerts(
         await websocket.close(code=4401, reason="Authentication required")
         return
 
+    db = SessionLocal()
     try:
-        user = verify_token(token)
+        user = resolve_token_user(token, db)
     except HTTPException:
-        await websocket.close(code=4401, reason="Invalid or expired token")
+        await websocket.close(code=4401, reason="Invalid, expired, or revoked token")
         return
+    finally:
+        db.close()
 
     await alert_manager.connect(websocket, district=district, user=user)
     try:

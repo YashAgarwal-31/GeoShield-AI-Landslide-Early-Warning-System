@@ -103,6 +103,7 @@ def authenticate_user(email: str, password: str, db=None) -> dict | None:
                 "email": account.email,
                 "name": account.name,
                 "role": account.role,
+                "token_version": account.token_version or 0,
             }
 
     user = AUTH_USERS.get(normalized_email)
@@ -145,6 +146,7 @@ def create_token(user_data: dict) -> str:
         "sub": user_data["email"],
         "name": user_data["name"],
         "role": user_data["role"],
+        "ver": int(user_data.get("token_version", 0)),
         "iat": datetime.now(timezone.utc).replace(tzinfo=None),
         "exp": datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(hours=JWT_EXPIRY_HOURS),
     }
@@ -168,25 +170,9 @@ def verify_token(token: str) -> dict:
         )
 
 
-def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
-    db=Depends(get_db),
-) -> dict:
-    """Verify the JWT and reconcile it with the persistent account state.
-
-    Persistent users are checked on every authenticated request so disabling an
-    account or changing its role takes effect immediately instead of waiting for
-    an already-issued JWT to expire. Production also fails closed when a token
-    references an account that no longer exists.
-    """
-    if credentials is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Authentication required",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-
-    payload = verify_token(credentials.credentials)
+def resolve_token_user(token: str, db) -> dict:
+    """Verify a token and reconcile it with current persistent account state."""
+    payload = verify_token(token)
     normalized_email = str(payload.get("sub") or "").strip().lower()
     if not normalized_email:
         raise HTTPException(
@@ -207,10 +193,20 @@ def get_current_user(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Account is disabled",
             )
+
+        token_version = int(payload.get("ver", 0))
+        account_version = int(account.token_version or 0)
+        if token_version != account_version:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Session has been revoked",
+            )
+
         # Use current database identity/role so privilege changes are immediate.
         payload["sub"] = account.email
         payload["name"] = account.name
         payload["role"] = account.role
+        payload["ver"] = account_version
         return payload
 
     if IS_PRODUCTION and not ENABLE_DEMO_USERS:
@@ -220,6 +216,20 @@ def get_current_user(
         )
 
     return payload
+
+
+def get_current_user(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    db=Depends(get_db),
+) -> dict:
+    """Verify JWT validity plus live persistent account/session state."""
+    if credentials is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication required",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    return resolve_token_user(credentials.credentials, db)
 
 
 def require_role(*allowed_roles: str):

@@ -173,6 +173,7 @@ class UserAccount(Base):
     password_hash = Column(String, nullable=False)
     role = Column(String, nullable=False, default="citizen")
     is_active = Column(Boolean, default=True, nullable=False)
+    token_version = Column(Integer, default=0, nullable=False)
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
     last_login_at = Column(DateTime, nullable=True)
