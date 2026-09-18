@@ -1,4 +1,4 @@
-import { HashRouter as Router, Routes, Route, NavLink, useNavigate, useLocation } from 'react-router-dom';
+import { HashRouter as Router, Routes, Route, NavLink, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { useState, useEffect, createContext, useContext } from 'react';
 import { t, setLanguage, getCurrentLanguage, Language, languages } from './i18n/translations';
 import { loginAPI, setStoredToken, clearStoredToken, getStoredToken, getAlertStats, getReadiness, getAlertWebSocketUrl, getServerUrl, setServerUrl, isMobileApp, normalizeServerBase, api } from './services/api';
