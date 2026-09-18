@@ -12,6 +12,7 @@ import SatelliteData from './pages/SatelliteData';
 import DemoFlow from './pages/DemoFlow';
 import FloodData from './pages/FloodData';
 import Stations from './pages/Stations';
+import AdminOperations from './pages/AdminOperations';
 import ErrorBoundary from './components/ErrorBoundary';
 import MobileFAB from './components/MobileFAB';
 import {
@@ -395,28 +396,6 @@ function LoginPage() {
               </button>
             </div>
           </form>
-          <div className="mt-6 pt-4 border-t border-dark-700">
-            <p className="text-[10px] text-dark-500 text-center">
-              {t('demoLoginHint')}
-            </p>
-          </div>
-          <div className="mt-4 grid grid-cols-2 gap-2">
-            {[
-              { email: 'admin@geoshield.gov.in', password: 'admin123', label: t('adminRole') },
-              { email: 'field@geoshield.gov.in', password: 'field123', label: t('fieldOfficerRole') },
-              { email: 'district@geoshield.gov.in', password: 'district123', label: t('districtAdminRole') },
-              { email: 'citizen@geoshield.gov.in', password: 'demo123', label: t('citizenRole') },
-            ].map((demo) => (
-              <button
-                key={demo.email}
-                type="button"
-                onClick={() => { setEmail(demo.email); setPassword(demo.password); }}
-                className="text-xs text-dark-300 hover:text-green-400 px-3 py-2.5 rounded-lg bg-dark-800/50 border border-dark-700 hover:border-green-600/30 transition-all min-h-[44px]"
-              >
-                {demo.label}
-              </button>
-            ))}
-          </div>
           <div className="mt-4 text-[10px] text-dark-500 text-center">
             API: {apiUrl}
           </div>
@@ -464,10 +443,14 @@ function MainLayout() {
     { to: '/alerts', icon: AlertTriangle, label: t('alerts'), badge: activeAlerts > 0 ? activeAlerts : null },
     { to: '/reports', icon: FileText, label: t('reports'), badge: null },
     { to: '/stations', icon: Radio, label: t('stations'), badge: null },
-    { to: '/simulator', icon: Zap, label: t('simulateLandslide'), badge: null },
     { to: '/satellite', icon: Satellite, label: t('satellite'), badge: null },
     { to: '/flood', icon: Waves, label: t('floodRisk'), badge: null },
-    { to: '/demo', icon: Rocket, label: t('demoFlow'), badge: null },
+    ...(user?.role === 'admin' || user?.role === 'district_admin'
+      ? [{ to: '/simulator', icon: Zap, label: 'Scenario Testing', badge: null }]
+      : []),
+    ...(user?.role === 'admin'
+      ? [{ to: '/admin', icon: Settings, label: 'Administration', badge: null }]
+      : []),
   ];
 
   return (
@@ -508,7 +491,7 @@ function MainLayout() {
             </span>
             {sidebarOpen && (
               <div>
-                <span className="text-[10px] text-green-400 font-semibold tracking-wider">{t('liveMonitoring')}</span>
+                <span className="text-[10px] text-green-400 font-semibold tracking-wider">SYSTEM ONLINE</span>
               </div>
             )}
           </div>
@@ -670,9 +653,9 @@ function MainLayout() {
             </button>
             <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-green-600/10 border border-green-600/20">
               <Radio className="w-3 h-3 text-green-400" />
-              <span className="text-[10px] text-green-400 font-semibold">MONITORING DEMO</span>
+              <span className="text-[10px] text-green-400 font-semibold">SYSTEM ONLINE</span>
             </div>
-            <span className="text-xs text-dark-400 hidden md:inline">NER Region • 8 States • 20 Stations</span>
+            <span className="text-xs text-dark-400 hidden md:inline">NER Operational Monitoring Platform</span>
           </div>
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-1.5 text-dark-400">
@@ -706,6 +689,7 @@ function MainLayout() {
             <Route path="/simulator" element={<Simulator />} />
             <Route path="/satellite" element={<SatelliteData />} />
             <Route path="/flood" element={<FloodData />} />
+            {user?.role === 'admin' && <Route path="/admin" element={<AdminOperations />} />}
             <Route path="/demo" element={<DemoFlow />} />
           </Routes>
         </main>
