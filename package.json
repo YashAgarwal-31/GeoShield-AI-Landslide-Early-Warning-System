@@ -1,5 +1,5 @@
 {
-  "name": "geoshield",
+  "name": "geo-shield",
   "version": "1.0.0",
   "description": "GeoShield - AI-Based Landslide Risk Monitoring System for NER",
   "main": "electron/main.js",
@@ -9,13 +9,14 @@
     "build:win": "electron-builder --win --config electron-builder.json",
     "build:mac": "electron-builder --mac --config electron-builder.json",
     "build:all": "electron-builder -wml --config electron-builder.json",
-    "test": "cd backend && python3 tests/test_e2e.py"
+    "test": "cd backend && python -m pytest tests -q",
+    "verify:desktop": "node --check electron/main.js && node --check electron/preload.js"
   },
   "author": "Team GeoShield <team@geoshield.dev>",
-  "license": "MIT",
+  "license": "ISC",
   "devDependencies": {
-    "electron": "^33.0.0",
-    "electron-builder": "^25.1.8"
+    "electron": "^44.0.0",
+    "electron-builder": "^26.15.3"
   },
   "dependencies": {}
 }
