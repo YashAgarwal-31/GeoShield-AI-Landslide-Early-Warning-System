@@ -19,7 +19,7 @@ function createWindow() {
     minHeight: 700,
     backgroundColor: '#0a0f1a',
     title: 'GeoShield — Landslide Risk Monitoring',
-    icon: path.join(__dirname, '..', 'branding', 'team_logo.ico'),
+    icon: path.join(__dirname, '..', 'branding', 'team_logo.png'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false,
@@ -42,8 +42,13 @@ function createWindow() {
 }
 
 function startBackend() {
-  const backendDir = path.join(__dirname, '..', 'backend');
+  const backendDir = app.isPackaged
+    ? path.join(process.resourcesPath, 'backend')
+    : path.join(__dirname, '..', 'backend');
   const pythonCmd = process.platform === 'win32' ? 'python' : 'python3';
+  const dataDir = app.getPath('userData');
+  const databasePath = path.join(dataDir, 'geoshield.db').replace(/\\/g, '/');
+  const modelCacheDir = path.join(dataDir, 'models');
 
   console.log('[GeoShield] Starting backend...');
   backendProcess = spawn(pythonCmd, [
@@ -53,6 +58,22 @@ function startBackend() {
   ], {
     cwd: backendDir,
     stdio: 'pipe',
+    env: {
+      ...process.env,
+      APP_ENV: 'demo',
+      ENABLE_DEMO_USERS: 'true',
+      WEATHER_LIVE_ENABLED: 'false',
+      MODEL_TRAINING_ENABLED: 'false',
+      TRUST_PROXY_HEADERS: 'false',
+      DATABASE_URL: `sqlite:///${databasePath}`,
+      MODEL_CACHE_DIR: modelCacheDir,
+      TRAINING_DATA_PATH: app.isPackaged
+        ? path.join(process.resourcesPath, 'datasets', 'processed', 'real_ner_training_data.csv')
+        : path.join(__dirname, '..', 'datasets', 'processed', 'real_ner_training_data.csv'),
+      SATELLITE_DATA_PATH: app.isPackaged
+        ? path.join(process.resourcesPath, 'datasets', 'processed', 'real_satellite_data.json')
+        : path.join(__dirname, '..', 'datasets', 'processed', 'real_satellite_data.json'),
+    },
   });
 
   backendProcess.stdout.on('data', (data) => {
