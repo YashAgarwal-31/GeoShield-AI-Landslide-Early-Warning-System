@@ -1,0 +1,172 @@
+{
+  "report_version": 1,
+  "environment": {
+    "python": "3.12.14",
+    "numpy": "2.5.3",
+    "pandas": "3.0.6",
+    "scikit_learn": "1.9.1"
+  },
+  "dataset": {
+    "path": "datasets/processed/real_ner_training_data.csv",
+    "sha256": "67d618bc1808a8e38bf43af359f5f14240e60bd675c915b9f09cd25b001552a7",
+    "provenance": "mixed regional, derived, and realistically generated prototype data",
+    "label_provenance": "generated binary labels; not independently observed field outcomes",
+    "suitability": "software verification and methodology development only"
+  },
+  "quality": {
+    "rows": 12000,
+    "columns": 14,
+    "districts": 19,
+    "target_distribution": {
+      "0": 10800,
+      "1": 1200
+    },
+    "positive_rate": 0.1,
+    "exact_duplicate_rows": 0,
+    "missing_values": {},
+    "range_issues": {
+      "ndvi_outside_0_1": 1,
+      "soil_moisture_outside_0_1": 28,
+      "slope_outside_0_90": 0,
+      "month_outside_1_12": 0
+    },
+    "warnings": [
+      "ndvi_outside_0_1: 1 row(s)",
+      "soil_moisture_outside_0_1: 28 row(s)"
+    ],
+    "errors": [],
+    "valid_for_evaluation": true
+  },
+  "evaluation_design": {
+    "target": "landslide",
+    "features": [
+      "slope",
+      "elevation",
+      "aspect",
+      "rainfall_daily",
+      "rainfall_7day",
+      "ndvi",
+      "soil_moisture",
+      "distance_to_road",
+      "month"
+    ],
+    "group": "district",
+    "random_seed": 42,
+    "holdout": "25% of districts using GroupShuffleSplit",
+    "cross_validation": "5-fold StratifiedGroupKFold by district",
+    "fixed_transformations": [
+      "clip ndvi to [0, 1]",
+      "clip soil_moisture to [0, 1]"
+    ],
+    "model": {
+      "type": "RandomForestClassifier",
+      "n_estimators": 100,
+      "max_depth": 12,
+      "min_samples_leaf": 5,
+      "class_weight": "balanced"
+    }
+  },
+  "holdout": {
+    "train_rows": 8759,
+    "test_rows": 3241,
+    "train_districts": [
+      "Dima Hasao",
+      "Dimapur",
+      "East Khasi Hills",
+      "Gangtok",
+      "Imphal East",
+      "Karbi Anglong",
+      "Kohima",
+      "Lunglei",
+      "Mangan",
+      "Namchi",
+      "Papum Pare",
+      "Tawang",
+      "West Garo Hills",
+      "West Tripura"
+    ],
+    "test_districts": [
+      "Aizawl",
+      "Churachandpur",
+      "East Siang",
+      "Kamrup",
+      "Lower Subansiri"
+    ],
+    "district_overlap": [],
+    "train_target_distribution": {
+      "0": 7843,
+      "1": 916
+    },
+    "test_target_distribution": {
+      "0": 2957,
+      "1": 284
+    },
+    "baseline": {
+      "balanced_accuracy": 0.5,
+      "precision_positive": 0.0,
+      "recall_positive": 0.0,
+      "f1_positive": 0.0,
+      "roc_auc": 0.5,
+      "pr_auc": 0.087627,
+      "confusion_matrix": [
+        [
+          2957,
+          0
+        ],
+        [
+          284,
+          0
+        ]
+      ]
+    },
+    "model": {
+      "balanced_accuracy": 0.761787,
+      "precision_positive": 0.455285,
+      "recall_positive": 0.591549,
+      "f1_positive": 0.514548,
+      "roc_auc": 0.861359,
+      "pr_auc": 0.563694,
+      "confusion_matrix": [
+        [
+          2756,
+          201
+        ],
+        [
+          116,
+          168
+        ]
+      ]
+    }
+  },
+  "cross_validation": {
+    "folds": 5,
+    "district_disjoint": true,
+    "metrics": {
+      "balanced_accuracy": {
+        "mean": 0.772749,
+        "std": 0.01305
+      },
+      "precision_positive": {
+        "mean": 0.553334,
+        "std": 0.05438
+      },
+      "recall_positive": {
+        "mean": 0.600675,
+        "std": 0.023859
+      },
+      "f1_positive": {
+        "mean": 0.574114,
+        "std": 0.028716
+      },
+      "roc_auc": {
+        "mean": 0.878903,
+        "std": 0.023724
+      },
+      "pr_auc": {
+        "mean": 0.646277,
+        "std": 0.037517
+      }
+    }
+  },
+  "claim_policy": "These metrics characterize performance on generated/derived prototype labels only; they are not field accuracy or operational warning performance. Exact numeric reproduction requires the recorded dependency versions."
+}

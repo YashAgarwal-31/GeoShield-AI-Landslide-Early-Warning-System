@@ -13,6 +13,7 @@ Last verified: September 18, 2026
 | Desktop wrapper | Electron | Configured; package builds need per-OS verification |
 | Mobile wrapper | Capacitor configuration | Partial |
 | Data | Historical, cached, interpolated, seeded, and generated inputs | Mixed provenance |
+| Evaluation | District-grouped holdout and cross-validation with dataset checksum | Reproducible prototype evaluation |
 
 ## Independently verified in a clean environment
 
@@ -22,6 +23,9 @@ Last verified: September 18, 2026
 - Frontend TypeScript production build succeeds.
 - npm dependency audit reports no known vulnerabilities at verification time.
 - Python dependency graph has no broken requirements.
+- Dataset validator records schema, imbalance, range warnings, and SHA-256.
+- ML evaluation keeps districts disjoint and reports baseline, balanced accuracy,
+  precision, recall, F1, ROC-AUC, PR-AUC, and confusion matrix.
 
 ## Demo-ready capabilities
 
@@ -46,8 +50,10 @@ Last verified: September 18, 2026
 ## Phase plan
 
 1. **Baseline correctness:** align documentation with code, fix inconsistent risk guidance, and make tests reproducible.
-2. **Data provenance:** catalog sources and separate observed, derived, and generated samples.
-3. **ML evaluation:** build reproducible training/evaluation pipelines and leakage-resistant validation.
-4. **Integrations:** add reliable weather/satellite adapters with explicit freshness and fallback indicators.
-5. **Security:** remove production defaults, constrain CORS, add secret validation and abuse tests.
-6. **Presentation:** prepare a repeatable offline demo, metrics report, architecture diagrams, and viva material.
+2. **Data provenance and ML evaluation:** dataset manifest, checksum-bound audit,
+   district-grouped validation, baseline comparison, and imbalance-aware metrics
+   are implemented. Row-level source separation and independent field labels are
+   still pending.
+3. **Integrations:** add reliable weather/satellite adapters with explicit freshness and fallback indicators.
+4. **Security:** remove production defaults, constrain CORS, add secret validation and abuse tests.
+5. **Presentation:** prepare a repeatable offline demo, metrics report, architecture diagrams, and viva material.

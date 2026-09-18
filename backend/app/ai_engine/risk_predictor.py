@@ -1,7 +1,7 @@
 """
 GeoShield AI Risk Prediction Engine
 Uses Random Forest + Gradient Boosting ensemble for landslide risk assessment.
-Trained on REAL NER data with 2000 samples including actual terrain features.
+Trained on mixed-provenance regional and realistically generated NER features.
 """
 import numpy as np
 import joblib
@@ -11,7 +11,7 @@ import csv
 from datetime import datetime, timedelta
 
 # Bump this to force re-training when model architecture changes
-_MODEL_VERSION = "2.0"
+_MODEL_VERSION = "2.1"
 
 # Training data path - can be overridden via env var for Docker deployments
 TRAINING_DATA_PATH = os.getenv(
@@ -24,7 +24,7 @@ class LandslideRiskPredictor:
     """
     Ensemble ML model for landslide risk prediction.
     Combines Random Forest and Gradient Boosting for robust predictions.
-    Trained on real NER data with elevation, slope, NDVI, soil moisture.
+    Trained on mixed-provenance NER data with elevation, slope, NDVI, and soil moisture.
     """
 
     CACHE_FILE = os.path.join(os.path.dirname(__file__), "models", "geoshield_model.pkl")
@@ -80,7 +80,7 @@ class LandslideRiskPredictor:
             print(f"[GeoShield AI] Failed to cache model: {e}")
 
     def _load_real_training_data(self):
-        """Load real NER training data and labels from CSV."""
+        """Load the compatibility-named, mixed-provenance NER training CSV."""
         path = TRAINING_DATA_PATH
 
         if os.path.exists(path):
@@ -106,7 +106,7 @@ class LandslideRiskPredictor:
                         except (ValueError, KeyError):
                             continue
                 if len(data) > 100:
-                    print(f"[GeoShield AI] Loaded {len(data)} real NER training samples from {path}")
+                    print(f"[GeoShield AI] Loaded {len(data)} mixed-provenance NER training samples from {path}")
                     return np.array(data), np.array(labels)
             except Exception as e:
                 print(f"[GeoShield AI] Error loading {path}: {e}")
@@ -114,16 +114,16 @@ class LandslideRiskPredictor:
         return None, None
 
     def _build_model(self):
-        """Build and train the ML model with real or synthetic data."""
+        """Build and train the demo model with repository or fallback data."""
         from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier, VotingClassifier
         from sklearn.preprocessing import StandardScaler
         from sklearn.model_selection import train_test_split
 
-        # Try to load real training data first
+        # Try to load the repository training table first.
         real_data, real_labels = self._load_real_training_data()
 
         if real_data is not None and real_labels is not None and len(real_data) > 100:
-            # Use real NER data with actual ground-truth labels from CSV
+            # Labels are generated/derived prototype labels, not field ground truth.
             X = real_data
             n_samples = len(X)
 
@@ -190,7 +190,13 @@ class LandslideRiskPredictor:
             y[risk_score >= 0.55] = 2
             y[risk_score >= 0.70] = 3
 
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+        X_train, X_test, y_train, y_test = train_test_split(
+            X,
+            y,
+            test_size=0.2,
+            random_state=42,
+            stratify=y if len(np.unique(y)) > 1 else None,
+        )
 
         self.scaler = StandardScaler()
         X_train_scaled = self.scaler.fit_transform(X_train)

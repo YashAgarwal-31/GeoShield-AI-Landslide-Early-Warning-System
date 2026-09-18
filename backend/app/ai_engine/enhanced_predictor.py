@@ -83,14 +83,14 @@ class EnhancedLandslidePredictor:
         if csv_path and os.path.exists(csv_path):
             df = pd.read_csv(csv_path)
         else:
-            # Try real NER data
+            # Try the repository's mixed-provenance NER table.
             ner_path = os.path.join(
                 os.path.dirname(__file__), "..", "..", "..",
                 "datasets", "processed", "real_ner_training_data.csv"
             )
             if os.path.exists(ner_path):
                 df = pd.read_csv(ner_path)
-                print(f"[Enhanced Predictor] Loaded real NER data: {len(df)} samples")
+                print(f"[Enhanced Predictor] Loaded mixed-provenance NER data: {len(df)} samples")
             else:
                 # Generate synthetic data
                 df = self._generate_demo_data(2000)

@@ -351,9 +351,11 @@ GeoShield's prototype explores these problems by:
 The inference pipeline and four risk classes are functional, but the existing
 training data have mixed provenance and severe class imbalance. The upstream
 accuracy figures are therefore excluded from this adaptation's verified results.
-Phase 2 will introduce source-level data documentation, grouped/geographic data
-splits, imbalance-aware metrics, baselines, and reproducible evaluation before a
-performance figure is used in the presentation.
+The Phase 2 evaluator now provides a checksum-bound data audit, majority-class
+baseline, district-disjoint holdout, and five-fold grouped validation with
+balanced accuracy, precision, recall, F1, ROC-AUC, PR-AUC, and a confusion
+matrix. See [`datasets/evaluation/README.md`](datasets/evaluation/README.md).
+These metrics describe generated/derived labels and are not field accuracy.
 
 ---
 
@@ -920,7 +922,7 @@ GeoShield/
 | **HTTP** | Axios | 1.x | API client |
 | **Mobile** | Capacitor | 6.x + Status Bar | Android wrapper, futuristic splash |
 | **Desktop** | Electron | 44.x | Windows/Linux, auto-starts backend |
-| **Testing** | pytest + TestClient | — | 84 tests in the verified Phase 1 suite |
+| **Testing** | pytest + TestClient | — | 87 tests in the verified Phase 2 suite |
 
 ---
 
@@ -932,10 +934,10 @@ GeoShield/
 |------|------------------------|
 | **Backend** | FastAPI application starts and the health, dashboard, and prediction flows respond |
 | **Frontend** | React 18 + TypeScript production build completes |
-| **Automated tests** | 84 backend tests pass in a clean Phase 1 environment |
+| **Automated tests** | 87 backend tests pass in a clean Phase 2 environment |
 | **Security checks** | Dependency checks pass; npm reports no known vulnerabilities in the audited install |
 | **Demonstration data** | 20 seeded station profiles across 8 NER states, plus cached, historical, and generated inputs |
-| **ML status** | Prediction pipeline is functional; defensible performance evaluation and field validation remain future work |
+| **ML status** | District-grouped prototype evaluation is reproducible; independent field validation remains future work |
 
 ### Intended Impact
 
@@ -949,10 +951,10 @@ claimed by the current prototype.
 
 ## ✅ Test Results
 
-### Latest Clean Verification: 84/84 PASSED
+### Latest Clean Verification: 87/87 PASSED
 
 ```
-Backend:   84 passed, 0 failed
+Backend:   87 passed, 0 failed
 Frontend:  TypeScript + Vite production build passed
 npm audit: 0 known vulnerabilities
 pip check: No broken requirements found
@@ -1041,10 +1043,10 @@ cd geo-shield && npm install && npm run build:win
 
 | Phase | Timeline | Features |
 |-------|----------|----------|
-| **Phase 1** | ✅ Done | Dashboard, GIS Map, Alerts, Reports, Simulator, Satellite, Flood, Click-to-Predict, GeoJSON/CSV Export, Alert Timeline, Demo Flow, Android App, Linux Desktop, Windows Desktop, 5 Languages, Futuristic UI, Rate Limiting |
-| **Phase 2** | +3 months | SMS/Push notifications, React Native iOS app, Real IoT sensor integration |
-| **Phase 3** | +6 months | Sentinel-2 NDVI pipeline, SRTM DEM integration, IMD API |
-| **Phase 4** | +12 months | Offline-first mobile, District admin portal, Multi-hazard support |
+| **Phase 1** | ✅ Done | Baseline audit, dependency correction, risk-guidance consistency fix, provenance policy, verified backend/frontend baseline |
+| **Phase 2** | ✅ Done | Dataset audit, provenance manifest, checksum-bound report, district-grouped ML evaluation, imbalance-aware metrics, regression tests |
+| **Phase 3** | Next | Reliable weather/satellite adapters with timestamps, freshness indicators, and explicit fallback status |
+| **Phase 4** | Planned | Production configuration/security hardening, deployment checks, offline demo, presentation, and viva material |
 
 ---
 

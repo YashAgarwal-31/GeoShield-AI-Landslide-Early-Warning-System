@@ -1,210 +1,67 @@
-# 📊 GeoShield — Complete Dataset Manifest
+# GeoShield dataset manifest
 
-## 📋 Overview
+This manifest describes the files currently present in the repository. It does
+not treat generated rows as observed events or cached values as live feeds.
 
-This document lists ALL datasets used, available, and ready to integrate in GeoShield.
+## Tracked datasets
 
----
+| File | Rows/items | Provenance category | Current use |
+|---|---:|---|---|
+| `processed/real_ner_training_data.csv` | 12,000 rows | Regional features mixed with realistically generated rows and generated binary labels | Prototype training and reproducible methodology evaluation |
+| `raw/ner_historical_landslides.csv` | Small regional catalog | Historical/reference records | Demonstration context |
+| `raw/nasa_landslide_catalog.csv` | Repository extract | External historical catalog extract | Reference and preprocessing experiments |
+| `raw/india_district_rainfall.csv` | Repository extract | Historical rainfall table | Reference and preprocessing experiments |
+| `processed/real_satellite_data.json` | 20 station profiles | Cached API-derived and estimated values | Satellite demonstration page |
+| `processed/ner_roads.json` | Road features | OpenStreetMap-derived snapshot | GIS demonstration |
+| Seeded database records | Runtime-generated | Simulated station, sensor, alert, report, and infrastructure state | Default local demo |
 
-## ✅ Integrated Datasets (Currently in Use)
+Some processed files retain their upstream filenames for compatibility. A name
+containing `real` does not mean that every value or label in the file is an
+independently observed measurement.
 
-| # | Dataset | Source | Samples | Features | Status |
-|---|---------|--------|---------|----------|--------|
-| 1 | **Real NER Training Data** | Open-Meteo + Previous prototype | 12,000 | slope, elevation, aspect, rainfall, NDVI, soil_moisture, distance_to_road, land_cover | ✅ Training AI model (elevation updated with SRTM) |
-| 2 | **Satellite Data (JSON)** | **Open-Meteo API (REAL-TIME)** | 20 stations | elevation, soil_moisture_0_7cm, soil_moisture_7_28cm, temperature, humidity, rainfall, wind, NDVI | ✅ **REAL data from satellite APIs** |
-| 3 | **Sensor Station Data** | Generated (realistic) | 67,200 | rainfall, soil_moisture, temperature, displacement, tilt, pore_pressure, vibration | ✅ 20 stations × 168 hours |
-| 4 | **Risk Assessments** | AI Model | 960+ | risk_score, risk_level, probability, contributing_factors | ✅ 48h hourly |
-| 5 | **Weather Data** | Generated (realistic) | 2,800 | temperature, humidity, rainfall, wind, pressure, forecast | ✅ 3-hour intervals |
-| 6 | **Road Network** | **OpenStreetMap Overpass API (REAL)** | 59 roads | 18 national highways, 30 state highways with coordinates | ✅ **REAL road polylines** |
+## Training-table audit
 
----
+The reproducible validator currently records:
 
-## 🛰️ Real Data Sources (Currently Downloaded)
+| Check | Result |
+|---|---:|
+| Rows | 12,000 |
+| District groups | 19 |
+| Negative labels | 10,800 |
+| Positive labels | 1,200 |
+| Exact duplicate rows | 0 |
+| Missing required values | 0 |
+| NDVI values above 1 | 1 |
+| Soil-moisture values above 1 | 28 |
 
-### ✅ 1. Open-Meteo API — Real-Time Satellite Data (DOWNLOADED)
-- **Source:** Open-Meteo (https://open-meteo.com/)
-- **Data:** Soil moisture (satellite-estimated), elevation (SRTM), temperature, humidity, rainfall
-- **Coverage:** Global (including NER)
-- **Cost:** FREE (no signup)
-- **Status:** ✅ Downloaded for all 20 stations
-- **Script:** `datasets/download_real_data.py`
-- **Output:** `processed/real_satellite_data.json` (updated with real values)
+The evaluation pipeline reports the out-of-range values and applies a fixed
+`[0, 1]` clip to NDVI and soil moisture. It does not silently describe the table
+as clean field data.
 
-### ✅ 2. OpenStreetMap — Real Road Network (DOWNLOADED)
-- **Source:** Overpass API (https://overpass-api.de/)
-- **Data:** 59 road segments (18 national highways, 30 state highways)
-- **Coverage:** NER region
-- **Cost:** FREE (no signup)
-- **Status:** ✅ Downloaded
-- **Script:** `datasets/download_roads.py`
-- **Output:** `processed/ner_roads.json`
+## Reproducible evaluation
 
-### ⏳ 3. SRTM DEM — High-Resolution Terrain (Available)
-- **Source:** USGS EarthExplorer
-- **URL:** https://earthexplorer.usgs.gov/
-- **Data:** 30m resolution elevation, slope, aspect
-- **Cost:** FREE (signup required)
-- **Status:** ⏳ Available for download
-- **Note:** Open-Meteo provides 90m SRTM elevation (already downloaded)
-
-### ⏳ 4. Sentinel-2 NDVI — High-Resolution Vegetation (Available)
-- **Source:** Copernicus Data Space
-- **URL:** https://dataspace.copernicus.eu/
-- **Data:** 10m resolution NDVI
-- **Cost:** FREE (signup required)
-- **Status:** ⏳ Available for download
-- **Note:** Our NDVI is estimated from soil moisture + vegetation cover (already downloaded)
-
----
-
-## 📥 Kaggle Datasets (Available for Download)
-
-### 6. NASA Global Landslide Catalog
-- **Source:** Kaggle
-- **URL:** https://www.kaggle.com/datasets/nasa/landslide-catalog-from-nasa
-- **Data:** 1,693 worldwide landslide events with lat/lng, trigger, severity
-- **Size:** 432 KB
-- **Features:** event_date, location, trigger, fatalities, damage
-
-### 7. India Rainfall Data (1901-2015)
-- **Source:** Kaggle
-- **URL:** https://www.kaggle.com/datasets/rajanand/rainfall-in-india
-- **Data:** Monthly rainfall by subdivision (including NER)
-- **Size:** 516 KB
-- **Features:** year, month, subdivision, rainfall
-
-### 8. India Landslide Incidents (2016-2020)
-- **Source:** Kaggle
-- **URL:** https://www.kaggle.com/datasets/kkhandekar/lanslide-recent-incidents-india
-- **Data:** India-specific landslide events
-- **Size:** 56 KB
-- **Features:** date, location, state, cause, casualties
-
-### 9. Landslide & Flood India
-- **Source:** Kaggle
-- **URL:** https://www.kaggle.com/datasets/sahilrajverma/landslide
-- **Data:** India landslide and flood analysis data
-- **Size:** 7 MB
-- **Features:** Various risk factors
-
-### 10. Landslide Risk Assessment Factors
-- **Source:** Kaggle
-- **URL:** https://www.kaggle.com/datasets/rajumavinmar/landslide-dataset
-- **Data:** Factors influencing landslides
-- **Features:** rainfall, slope_angle, soil_properties, vegetation, earthquake
-
-### 11. Wireless Sensor Network Landslide Dataset
-- **Source:** Kaggle
-- **URL:** https://www.kaggle.com/datasets/ucimachinelearning/wireless-sensor-network-landslide-dataset
-- **Data:** Real sensor readings for landslide prediction
-- **Features:** rainfall_24h, soil_moisture, vibration, displacement
-
-### 12. Global Landslide Data
-- **Source:** Kaggle
-- **URL:** https://www.kaggle.com/datasets/kazushiadachi/global-landslide-data
-- **Data:** Global landslide catalog with triggers and impacts
-
----
-
-## 🗺️ NER-Specific Data Sources
-
-### 13. NESDR NER Landslide Map
-- **Source:** North Eastern Spatial Data Repository
-- **URL:** https://www.nesdr.gov.in/dataset/ner-landslide-map
-- **Data:** NER landslide incidents 2020-2021
-- **Format:** Excel/Shapefile
-- **Cost:** FREE
-
-### 14. India District Boundaries
-- **Source:** Kaggle
-- **URL:** https://www.kaggle.com/datasets/ashishkumarjha/india-district-wise-shape-file
-- **Data:** District polygon shapefiles
-- **Use:** Map risk zones to actual districts
-
-### 15. India Road Network
-- **Source:** OpenStreetMap
-- **URL:** https://www.kaggle.com/datasets/blessonbinjosep/indian-roads
-- **Data:** Road polylines for India
-- **Use:** Real road connectivity monitoring
-
----
-
-## 📊 Data Statistics
-
-| Metric | Value |
-|--------|-------|
-| Total integrated datasets | 5 |
-| Total real training samples | 2,000 |
-| Total sensor readings | 67,200 |
-| Total risk assessments | 960+ |
-| Available Kaggle datasets | 7 |
-| Available satellite sources | 5 |
-| NER-specific sources | 3 |
-
----
-
-## 🔄 Data Pipeline
-
-```
-┌──────────────────┐     ┌──────────────────┐     ┌──────────────────┐
-│  📥 DOWNLOAD      │────▶│  🔧 PROCESS       │────▶│  🤖 TRAIN        │
-│  Raw Data         │     │  Clean & Feature  │     │  AI Model        │
-├──────────────────┤     ├──────────────────┤     ├──────────────────┤
-│ • USGS SRTM DEM  │     │ • Extract values  │     │ • RF + GB        │
-│ • Copernicus NDVI│     │ • Compute slope   │     │ • 9 features     │
-│ • Kaggle CSVs    │     │ • Normalize       │     │ • 2000 samples   │
-│ • IMD Rainfall   │     │ • Handle missing  │     │ • 75% accuracy   │
-│ • SMAP Moisture  │     │ • Merge datasets  │     │                  │
-└──────────────────┘     └──────────────────┘     └──────────────────┘
-```
-
----
-
-## 🚀 How to Add More Data
-
-### Step 1: Download Real Data (No Signup Required)
 ```bash
-# Download real satellite data from Open-Meteo (free, no signup)
-python datasets/download_real_data.py
-
-# Download real road data from OpenStreetMap (free, no signup)
-python datasets/download_roads.py
-
-# Download NDVI (free, no signup for simulated/MODIS)
-python datasets/download_ndvi.py
+python datasets/evaluate_model.py
 ```
 
-### Step 2: Download Satellite Data (Signup Required)
-```bash
-# For high-resolution Sentinel-2 NDVI (10m)
-# 1. Sign up at https://dataspace.copernicus.eu/
-# 2. Run: python datasets/download_ndvi.py --method openeo
+The generated report is stored at
+[`evaluation/evaluation_report.json`](evaluation/evaluation_report.json), with
+methodology and interpretation guidance in [`evaluation/README.md`](evaluation/README.md).
 
-# For high-resolution SRTM DEM (30m)
-# 1. Sign up at https://earthexplorer.usgs.gov/
-# 2. Download GeoTIFF for NER region
-# 3. Run: python datasets/integrate_real_data.py
-```
+## External sources and planned integrations
 
-### Step 3: Retrain AI Model
-```bash
-# Retrain with new real features
-cd backend
-python -c "from app.ai_engine.risk_predictor import get_predictor; get_predictor()"
-```
+The scripts in this directory contain adapters or preparation code for sources
+such as Open-Meteo, OpenStreetMap, NASA GLC, SRTM, Sentinel-2, and IMD. Their
+presence does not mean that every source is live or fully integrated in the
+default build. Before adding an external dataset, record:
 
----
+1. canonical source URL and publisher;
+2. retrieval date and license/terms;
+3. raw-file checksum;
+4. transformation script and parameters;
+5. observed, derived, interpolated, or generated status for every field;
+6. geographic and temporal coverage;
+7. known missingness, imbalance, and measurement limitations.
 
-## 📝 Notes
-
-- **Open-Meteo API** provides real satellite-estimated soil moisture, elevation (SRTM), and weather — all FREE, no signup
-- **OpenStreetMap Overpass API** provides real road network data — FREE, no signup
-- **Copernicus Data Space** provides high-resolution Sentinel-2 NDVI — FREE with signup
-- **USGS EarthExplorer** provides high-resolution SRTM DEM — FREE with signup
-- Real satellite data significantly improves model accuracy
-- The system automatically falls back to synthetic data if real data is unavailable
-
----
-
-*Last updated: August 2026*
-*For SIH 2026 Problem Statement SIH26001*
+See [`../DATA_PROVENANCE.md`](../DATA_PROVENANCE.md) for the project-wide claim
+policy.
