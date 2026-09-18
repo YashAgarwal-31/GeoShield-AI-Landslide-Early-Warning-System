@@ -86,6 +86,8 @@ function startBackend() {
       REPORT_UPLOAD_DIR: reportUploadDir,
       AUTO_SEED_REFERENCE_DATA: 'true',
       PYTHONNOUSERSITE: '1',
+      PYTHONUTF8: '1',
+      PYTHONIOENCODING: 'utf-8',
       TRAINING_DATA_PATH: app.isPackaged
         ? path.join(process.resourcesPath, 'datasets', 'processed', 'real_ner_training_data.csv')
         : path.join(__dirname, '..', 'datasets', 'processed', 'real_ner_training_data.csv'),
