@@ -114,11 +114,17 @@ def init_database():
     db = SessionLocal()
     try:
         from app.models import SensorStation
-        if db.query(SensorStation).count() == 0:
+        auto_seed = _env_bool("AUTO_SEED_REFERENCE_DATA", default=not IS_PRODUCTION)
+        station_count = db.query(SensorStation).count()
+        if station_count == 0 and auto_seed:
             from app.seed_data import seed_database
             seed_database()
+        elif station_count == 0:
+            print("[GeoShield] Reference station seeding is disabled; database starts empty.")
         else:
-            print("[GeoShield] Database already seeded, skipping.")
+            print("[GeoShield] Reference station data already present, skipping seed.")
+
+        ensure_bootstrap_admin(db)
     finally:
         db.close()
     print("[GeoShield] ✅ Database ready")
