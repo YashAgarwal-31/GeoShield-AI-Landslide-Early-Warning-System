@@ -18,6 +18,7 @@ from app.models import SensorStation, SensorReading, RiskAssessment, Alert
 from app.ai_engine.risk_predictor import get_predictor
 from app.ai_engine.enhanced_predictor import get_enhanced_predictor
 from app.auth import require_role
+from app.realtime import alert_manager
 
 router = APIRouter(prefix="/api/simulate", tags=["simulate"])
 
@@ -44,7 +45,7 @@ class LandslideRequest(BaseModel):
     custom_moisture: Optional[float] = Field(None, ge=0, le=100)
 
 
-def _run_simulation(
+async def _run_simulation(
     db: Session,
     station_id: Optional[str],
     intensity: str,
@@ -201,6 +202,13 @@ def _run_simulation(
         alert_created = alert
 
     db.commit()
+    if alert_created is not None:
+        db.refresh(alert_created)
+        await alert_manager.publish_alert(
+            event_type="alert.created",
+            alert=alert_created,
+            district=station.district,
+        )
 
     return {
         "status": "success",
@@ -240,13 +248,13 @@ def _run_simulation(
 
 
 @router.post("/landslide")
-def simulate_landslide(
+async def simulate_landslide(
     request: LandslideRequest,
     db: Session = Depends(get_db),
     user: dict = Depends(require_role("admin", "field_officer", "district_admin")),
 ):
     """Run one controlled demonstration scenario."""
-    return _run_simulation(
+    return await _run_simulation(
         db=db,
         station_id=request.station_id,
         intensity=request.intensity,
@@ -256,7 +264,7 @@ def simulate_landslide(
 
 
 @router.post("/batch")
-def simulate_batch(
+async def simulate_batch(
     count: int = Query(5, ge=1, le=20),
     db: Session = Depends(get_db),
     user: dict = Depends(require_role("admin", "field_officer", "district_admin")),
@@ -272,7 +280,7 @@ def simulate_batch(
     intensities = ["moderate", "high", "critical", "high", "moderate"]
     for index in range(min(count, len(stations))):
         results.append(
-            _run_simulation(
+            await _run_simulation(
                 db=db,
                 station_id=stations[index % len(stations)].station_id,
                 intensity=intensities[index % len(intensities)],
@@ -287,7 +295,7 @@ def simulate_batch(
 
 
 @router.post("/reset")
-def reset_simulations(
+async def reset_simulations(
     db: Session = Depends(get_db),
     user: dict = Depends(require_role("admin")),
 ):
@@ -314,6 +322,13 @@ def reset_simulations(
         .delete(synchronize_session=False)
     )
     db.commit()
+    await alert_manager.broadcast({
+        "type": "alerts.reset",
+        "source": "simulation",
+        "deleted_alerts": deleted_alerts,
+        "deleted_assessments": deleted_assessments,
+        "deleted_readings": deleted_readings,
+    })
 
     return {
         "status": "success",
