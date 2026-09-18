@@ -2,7 +2,7 @@
 import json
 import random
 import math
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from app.database import SessionLocal, engine, Base
 from app.models import RiskAssessment, SensorStation
 
@@ -22,7 +22,7 @@ def seed_risk_history():
 
         for station in stations:
             for hours_ago in range(48, 0, -1):
-                ts = datetime.utcnow() - timedelta(hours=hours_ago)
+                ts = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(hours=hours_ago)
 
                 # Simulate varying risk over time
                 hour_factor = math.sin((ts.hour / 24) * math.pi) * 10
