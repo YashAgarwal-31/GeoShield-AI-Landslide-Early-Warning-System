@@ -7,7 +7,7 @@ SIMULATION so they cannot be mistaken for field observations.
 """
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from datetime import datetime
+from datetime import datetime, timezone
 from pydantic import BaseModel, Field
 from typing import Literal, Optional
 import json
@@ -98,7 +98,7 @@ def _run_simulation(
         tilt_angle_y=round(random.uniform(-params["tilt"], params["tilt"]), 2),
         pore_water_pressure=round(min(100, rainfall * 0.6 + random.uniform(5, 15)), 1),
         vibration_level=round(random.uniform(15, 40), 1),
-        timestamp=datetime.utcnow(),
+        timestamp=datetime.now(timezone.utc).replace(tzinfo=None),
     )
     db.add(reading)
 
