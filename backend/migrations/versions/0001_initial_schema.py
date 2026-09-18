@@ -38,7 +38,7 @@ def upgrade() -> None:
         sa.Column("slope_angle", sa.Float()),
         sa.Column("soil_type", sa.String()),
         sa.Column("vegetation_cover", sa.Float()),
-        sa.Column("is_active", sa.Boolean(), server_default=sa.text("1")),
+        sa.Column("is_active", sa.Boolean(), server_default=sa.true()),
         sa.Column("created_at", sa.DateTime(), server_default=sa.func.now()),
     )
 
