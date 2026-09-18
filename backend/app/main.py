@@ -14,6 +14,41 @@ from starlette.staticfiles import StaticFiles
 from starlette.responses import FileResponse
 from app.middleware.rate_limiter import RateLimiter
 
+
+def _env_bool(name: str, default: bool = False) -> bool:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
+APP_ENV = os.getenv("APP_ENV", "demo").strip().lower()
+IS_PRODUCTION = APP_ENV in {"prod", "production"}
+
+# Fail closed before importing routers/auth, because those modules load the JWT
+# secret during import. Local demo mode keeps the existing zero-config flow.
+if IS_PRODUCTION:
+    _jwt_secret = os.getenv("JWT_SECRET", "").strip()
+    if len(_jwt_secret) < 32:
+        raise RuntimeError(
+            "APP_ENV=production requires JWT_SECRET with at least 32 characters."
+        )
+
+
+def _cors_origins() -> list[str]:
+    raw = os.getenv("CORS_ALLOWED_ORIGINS", "").strip()
+    if raw:
+        return [origin.strip() for origin in raw.split(",") if origin.strip()]
+    if IS_PRODUCTION:
+        return []
+    return [
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://localhost:8000",
+        "http://127.0.0.1:8000",
+    ]
+
+
 from app.database import engine, Base, SessionLocal
 from app.routers import sensors, dashboard, alerts, reports, weather, simulator, satellite, predict, alerts_timeline, flood, ml_enhanced
 from app.auth import authenticate_user, create_token
@@ -111,12 +146,24 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=_cors_origins(),
     allow_credentials=False,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type"],
 )
 app.add_middleware(RateLimiter)
+
+
+@app.middleware("http")
+async def add_security_headers(request, call_next):
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "no-referrer"
+    response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=(self)"
+    if request.url.path.startswith("/api/auth/"):
+        response.headers["Cache-Control"] = "no-store"
+    return response
 
 app.include_router(sensors.router)
 app.include_router(dashboard.router)
@@ -139,6 +186,11 @@ def health_check():
 
 @app.post("/api/auth/login")
 def login(email: str = Form(...), password: str = Form(...)):
+    if IS_PRODUCTION and not _env_bool("ENABLE_DEMO_USERS", False):
+        raise HTTPException(
+            status_code=503,
+            detail="Demo authentication is disabled in production.",
+        )
     user = authenticate_user(email, password)
     if not user:
         raise HTTPException(status_code=401, detail="Invalid email or password")
@@ -200,9 +252,13 @@ if os.path.exists(FRONTEND_DIR):
             normalized = os.path.normpath(full_path).lstrip(os.sep)
             if normalized.startswith("..") or os.path.isabs(normalized):
                 return {"message": "Not found", "version": "1.0.0"}
-            file_path = os.path.join(FRONTEND_DIR, normalized)
-            # Ensure resolved path stays within FRONTEND_DIR
-            if not os.path.abspath(file_path).startswith(os.path.abspath(FRONTEND_DIR)):
+            file_path = os.path.abspath(os.path.join(FRONTEND_DIR, normalized))
+            # Use commonpath rather than a string prefix check so sibling paths
+            # such as "dist-evil" can never pass containment validation.
+            try:
+                if os.path.commonpath([FRONTEND_DIR, file_path]) != FRONTEND_DIR:
+                    return {"message": "Not found", "version": "1.0.0"}
+            except ValueError:
                 return {"message": "Not found", "version": "1.0.0"}
             if os.path.isfile(file_path):
                 return FileResponse(file_path)
