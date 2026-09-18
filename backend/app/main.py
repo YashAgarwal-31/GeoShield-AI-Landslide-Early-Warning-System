@@ -5,7 +5,6 @@ Backend API Server for Smart India Hackathon 2026
 import os
 import sys
 from datetime import datetime, timezone
-from typing import List
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Form, Depends
 from fastapi.middleware.cors import CORSMiddleware
@@ -51,39 +50,9 @@ def _cors_origins() -> list[str]:
 
 from app.database import engine, Base, SessionLocal
 from app.routers import sensors, dashboard, alerts, reports, weather, simulator, satellite, predict, alerts_timeline, flood, ml_enhanced, users
-from app.auth import authenticate_user, create_token, ensure_bootstrap_admin
+from app.auth import authenticate_user, create_token, ensure_bootstrap_admin, verify_token
+from app.realtime import alert_manager
 from app.database import get_db
-
-
-class ConnectionManager:
-    def __init__(self):
-        self.active_connections: List[WebSocket] = []
-
-    async def connect(self, websocket: WebSocket):
-        await websocket.accept()
-        self.active_connections.append(websocket)
-
-    def disconnect(self, websocket: WebSocket):
-        if websocket in self.active_connections:
-            self.active_connections.remove(websocket)
-
-    async def broadcast(self, message: dict):
-        disconnected = []
-        for connection in self.active_connections:
-            try:
-                await connection.send_json(message)
-            except WebSocketDisconnect:
-                disconnected.append(connection)
-            except RuntimeError as e:
-                # Connection closed or other runtime error
-                disconnected.append(connection)
-        
-        # Remove disconnected connections after iteration
-        for conn in disconnected:
-            self.disconnect(conn)
-
-
-manager = ConnectionManager()
 
 
 def init_database():
@@ -258,34 +227,52 @@ def login(email: str = Form(...), password: str = Form(...), db=Depends(get_db))
 
 
 @app.websocket("/ws/alerts/{district}")
-async def websocket_alerts(websocket: WebSocket, district: str = "all"):
-    """District-scoped WebSocket for real-time alert broadcasting."""
-    await manager.connect(websocket)
+async def websocket_alerts(
+    websocket: WebSocket,
+    district: str = "all",
+    token: str | None = None,
+):
+    """Authenticated district-scoped stream for operational alert events."""
+    if not token:
+        await websocket.close(code=4401, reason="Authentication required")
+        return
+
     try:
-        await websocket.send_json({"type": "connected", "district": district, "message": f"Connected to {district} alert stream"})
+        user = verify_token(token)
+    except HTTPException:
+        await websocket.close(code=4401, reason="Invalid or expired token")
+        return
+
+    await alert_manager.connect(websocket, district=district, user=user)
+    try:
+        await websocket.send_json({
+            "type": "connected",
+            "district": district,
+            "role": user.get("role"),
+            "message": f"Connected to {district} alert stream",
+        })
         while True:
             data = await websocket.receive_text()
             if data == "ping":
                 await websocket.send_json({"type": "pong"})
             elif data.startswith("subscribe:"):
-                new_district = data.split(":", 1)[1]
-                await websocket.send_json({"type": "subscribed", "district": new_district})
+                new_district = await alert_manager.subscribe(
+                    websocket, data.split(":", 1)[1]
+                )
+                await websocket.send_json({
+                    "type": "subscribed",
+                    "district": new_district,
+                })
     except WebSocketDisconnect:
-        manager.disconnect(websocket)
+        pass
+    finally:
+        await alert_manager.disconnect(websocket)
 
 
 @app.websocket("/ws/alerts")
-async def websocket_alerts_all(websocket: WebSocket):
-    """Legacy endpoint - connects to all districts."""
-    await manager.connect(websocket)
-    try:
-        await websocket.send_json({"type": "connected", "district": "all"})
-        while True:
-            data = await websocket.receive_text()
-            if data == "ping":
-                await websocket.send_json({"type": "pong"})
-    except WebSocketDisconnect:
-        manager.disconnect(websocket)
+async def websocket_alerts_all(websocket: WebSocket, token: str | None = None):
+    """Authenticated legacy all-district alert stream."""
+    await websocket_alerts(websocket=websocket, district="all", token=token)
 
 
 # Serve frontend static files
