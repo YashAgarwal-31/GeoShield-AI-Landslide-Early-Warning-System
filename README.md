@@ -741,56 +741,47 @@ GeoShield integrates **flood-landslide correlation** data for all 19 NER distric
 
 ## 🚀 Quick Start
 
-### Platform Wrappers
+### Recommended presentation path (Windows)
 
-Electron and Capacitor wrapper configurations are included, but packaged Android,
-Linux, and Windows binaries are not part of the current clean verification. Use
-the web setup below for the repeatable presentation build.
+Run once while internet is available:
 
-### One-Command Deploy (Web)
-
-```bash
-# Clone
-git clone https://github.com/YashAgarwal-31/GeoShield-AI-Landslide-Early-Warning-System.git
-cd GeoShield-AI-Landslide-Early-Warning-System
-
-# Deploy (creates venv, installs deps, builds frontend, starts server)
-bash deploy.sh
-
-# Open
-open http://localhost:8000
+```bat
+prepare-demo.bat
 ```
 
-### Manual Setup
+Then, including on presentation day without internet:
+
+```bat
+start-offline.bat
+```
+
+Open **http://127.0.0.1:8000**.
+
+### Linux/macOS local path
+
+After creating `backend/venv`, installing `backend/requirements.txt`, and
+running `npm ci && npm run build` in `frontend/`:
 
 ```bash
-# Prerequisites: Python 3.10+, Node.js 18+
-
-# Backend
-cd backend
-python3 -m venv venv          # Create virtual environment
-source venv/bin/activate      # Activate venv (Linux/Mac)
-# .\venv\Scripts\activate    # Activate venv (Windows)
-pip install -r requirements.txt
-# Optional live model-derived weather (offline fallback remains available):
-# export WEATHER_LIVE_ENABLED=true
-python -m uvicorn app.main:app --host 0.0.0.0 --port 8000
-
-# Frontend (separate terminal)
-cd frontend
-npm install
-npm run dev                   # Dev server at http://localhost:5173
-# npm run build               # OR build for production
+./start.sh
 ```
 
 ### Docker
 
 ```bash
-docker build -t geoshield .
-docker run -p 8000:8000 geoshield
+docker compose up --build
 ```
 
-**Demo Login:** `admin@geoshield.gov.in` / `admin123` — or click any demo button on the login page.
+Docker Compose binds the local demo to **127.0.0.1:8000**.
+
+For production, use the Docker profile described in
+[DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md). Production requires a strong
+`JWT_SECRET` and secret-managed `GEOSHIELD_ADMIN_EMAIL` /
+`GEOSHIELD_ADMIN_PASSWORD`; built-in demo credentials are not intended for
+public deployment.
+
+**Local demo login:** `admin@geoshield.gov.in` / `admin123` when
+`ENABLE_DEMO_USERS=true`.
 
 ---
 
@@ -806,17 +797,14 @@ GeoShield/
 ├── BUILD_GUIDE.md                         # Desktop/mobile build instructions
 ├── Dockerfile                             # Docker deployment
 ├── Procfile                               # Railway deployment
-├── deploy.sh                              # One-click local deploy (Linux/Mac)
 ├── start.bat                              # One-click local deploy (Windows)
 ├── start.sh                               # Quick launcher script
 ├── demo.sh                                # Polished demo script for judges
 ├── electron/
 │   ├── main.js                            # Electron main process + backend auto-start
 │   └── preload.js                         # Secure IPC bridge
-├── android/                               # 📱 Capacitor Android wrapper
 ├── branding/
 │   ├── team_logo.png                      # Team logo
-│   └── team_logo.ico                      # Windows icon
 │
 ├── backend/                               # ⚙️ Python FastAPI
 │   ├── app/
@@ -845,8 +833,10 @@ GeoShield/
 │   │   ├── middleware/
 │   │   │   └── rate_limiter.py            # Rate limiting (100/min)
 │   │   └── tests/
-│   │       ├── test_api.py                # 33 unit tests
-│   │       └── test_e2e.py                # 48 integration tests (8 new ML tests)
+│   │       ├── test_api.py                # API regression coverage
+│   │       ├── test_e2e.py                # End-to-end workflows
+│   │       ├── test_phase4_security.py    # Security/config regression coverage
+│   │       └── test_stabilization.py      # Post-Phase-4 consistency regressions
 │   └── uploads/                           # Photo uploads
 │
 ├── frontend/                              # 🖥️ React + TypeScript
@@ -937,7 +927,7 @@ The offline launcher disables live weather and model retraining, uses the prepar
 | **HTTP** | Axios | 1.x | API client |
 | **Mobile** | Capacitor | 6.x + Status Bar | Android wrapper, futuristic splash |
 | **Desktop** | Electron | 44.x | Windows/Linux, auto-starts backend |
-| **Testing** | pytest + TestClient + GitHub Actions | — | 97-test Phase 4 regression suite + build/audit/Docker CI |
+| **Testing** | pytest + TestClient + GitHub Actions | — | 100-test stabilized suite + audits/build/Docker runtime smoke CI |
 
 ---
 
@@ -949,8 +939,8 @@ The offline launcher disables live weather and model retraining, uses the prepar
 |------|------------------------|
 | **Backend** | FastAPI application starts and the health, dashboard, and prediction flows respond |
 | **Frontend** | React 18 + TypeScript production build completes |
-| **Automated tests** | 97 backend test functions pass in GitHub Actions, including 7 Phase 4 security/config regressions |
-| **Security checks** | `pip check`, frontend `npm audit --audit-level=high`, production frontend build, and Docker build pass in CI |
+| **Automated tests** | 100 backend test functions pass in GitHub Actions, including Phase 4 security/config and post-Phase-4 stabilization regressions |
+| **Security checks** | `pip check`, root/frontend npm audits, TypeScript/Vite build, Docker build, and production-container API/login smoke checks pass in CI |
 | **Demonstration data** | 20 seeded station profiles across 8 NER states, plus cached, historical, and generated inputs |
 | **ML status** | District-grouped prototype evaluation is reproducible; independent field validation remains future work |
 | **Source transparency** | Weather/satellite APIs and UI expose live, cached, fallback, stale, and unavailable states |
@@ -967,14 +957,15 @@ claimed by the current prototype.
 
 ## ✅ Test Results
 
-### Latest Clean Verification: 97/97 PASSED
+### Latest Clean Verification: 100/100 PASSED
 
 ```
-Backend:   97 test functions passed
+Backend:   100 passed
 Frontend:  TypeScript + Vite production build passed
-npm audit: high-severity audit gate passed
+npm audit: root + frontend report 0 vulnerabilities
 pip check: No broken requirements found
-Docker:    production image build passed
+Docker:    production image build + runtime smoke passed
+Runtime:   health + dashboard + stations + prediction + production login smoke passed
 ```
 
 ### Key Test Results
@@ -991,68 +982,35 @@ Docker:    production image build passed
 
 ---
 
-## 📱 Mobile & Desktop Apps
+## 📱 Mobile & Desktop Wrappers
 
-### Android APK
+The **web/Docker/offline runtime is the fully CI-verified project path**. Mobile
+and Electron wrappers share the same frontend but have platform-specific
+prerequisites.
 
-| Detail | Value |
-|--------|-------|
-| **Package** | com.geoshield.app |
-| **Size** | 7.9 MB |
-| **Target** | Android 14 (API 34) |
-| **Min SDK** | API 22 (Android 5.1) |
-| **Features** | All 10 pages, 45 APIs, RF+GB ensemble + terrain lookup, futuristic UI |
-| **Splash Screen** | Custom animated shield with grid background |
-| **Status Bar** | Dark mode, neon green accent |
+### Android / Capacitor
 
-```bash
-# Build APK
-cd frontend && npx cap sync android && cd android && ./gradlew assembleDebug
-# Output: android/app/build/outputs/apk/debug/app-debug.apk
-```
+- Package ID: `com.geoshield.app`
+- Installed APKs use the bundled frontend.
+- The Python/FastAPI backend is **not** embedded in the APK; enter a reachable
+  backend URL from the login/settings screen.
+- A fresh checkout must run `npx cap add android` before `npx cap sync android`
+  because generated Android platform files are not committed.
+- CI verifies the shared TypeScript/Vite build, not a complete Android SDK/Gradle
+  APK build.
 
-### Linux Desktop
+See [BUILD_GUIDE.md](BUILD_GUIDE.md) for exact commands.
 
-| Format | Size | Details |
-|--------|------|---------|
-| **AppImage** | 108 MB | Portable, no install needed |
-| **DEB Package** | 104 MB | Ubuntu/Debian native install |
-| **Tar.gz** | 127 MB | Any Linux distro |
+### Electron desktop
 
-| Feature | Details |
-|---------|---------|
-| **Auto-start Backend** | Python server launches with app |
-| **Loading Screen** | Animated splash with progress messages |
-| **Menu Bar** | Navigate (Cmd+1-7), View (Zoom, Fullscreen F11), Help |
-| **SPA Routing** | HashRouter — all 10 pages work from file:// |
-| **Backend Included** | Python + models bundled in app |
+The wrapper configuration now uses packaged backend/dataset/frontend resources,
+a real PNG icon, and writable per-user SQLite/model-cache paths. Root Electron
+lockfile installation and main/preload JavaScript syntax are CI-verified.
 
-```bash
-# Run AppImage
-chmod +x dist-electron/GeoShield-1.0.0.AppImage
-./dist-electron/GeoShield-1.0.0.AppImage
-# OR install DEB
-sudo dpkg -i dist-electron/geoshield_1.0.0_amd64.deb
-```
-
-### Windows Desktop
-
-| Format | Size | Details |
-|--------|------|---------|
-| **Portable ZIP** | 165 MB | Extract + run GeoShield.exe |
-| **Unpacked Dir** | 408 MB | Full Electron + Python backend |
-
-| Feature | Details |
-|---------|---------|
-| **One-Click Start** | `start.bat` auto-installs deps, seeds DB, opens browser |
-| **Backend Bundled** | Python server included, auto-starts on port 8000 |
-| **Custom Menu** | Navigate, View, Help with keyboard shortcuts |
-
-```bash
-# Build on Windows (or with Wine for NSIS installer):
-cd geo-shield && npm install && npm run build:win
-# OR use the portable zip directly
-```
+The current wrapper still relies on a compatible **system Python environment
+with GeoShield backend dependencies installed**; it does not embed a
+platform-specific Python runtime. For a fully repeatable academic demo, prefer
+`start-offline.bat` or Docker.
 
 ---
 
