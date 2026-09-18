@@ -22,6 +22,21 @@ from app.ai_engine.enhanced_predictor import get_enhanced_predictor
 router = APIRouter(prefix="/api", tags=["predict"])
 
 
+def _to_core_risk_level(level: str, score: float) -> str:
+    """Map enhanced-model labels to GeoShield's four operational levels."""
+    if level == "very_high":
+        return "high"
+    if level in {"low", "moderate", "high", "critical"}:
+        return level
+    if score >= 75:
+        return "critical"
+    if score >= 50:
+        return "high"
+    if score >= 25:
+        return "moderate"
+    return "low"
+
+
 class PredictRequest(BaseModel):
     latitude: float = Field(..., ge=21.0, le=30.0, description="Latitude in NER region")
     longitude: float = Field(..., ge=88.0, le=98.0, description="Longitude in NER region")
@@ -88,7 +103,10 @@ def predict_risk_at_location(req: PredictRequest, db: Session = Depends(get_db))
     # The enhanced model owns the final score/level, so any derived guidance
     # must be recalculated from that same level. Previously a high enhanced
     # score could be paired with the original model's low-risk recommendation.
-    final_risk_level = enhanced_result["risk_level"]
+    final_risk_level = _to_core_risk_level(
+        enhanced_result["risk_level"],
+        float(enhanced_result["risk_score"]),
+    )
     final_recommendation = predictor.recommendation_for_level(
         final_risk_level,
         prediction.get("contributing_factors", []),
