@@ -31,12 +31,17 @@ def _get_latest_risk_subquery(db: Session):
 def get_dashboard_stats(db: Session = Depends(get_db)):
     total_stations = db.query(SensorStation).filter(SensorStation.is_active == True).count()
 
-    # Risk distribution
-    risk_counts = db.query(
-        RiskAssessment.risk_level,
-        func.count(RiskAssessment.id)
-    ).group_by(RiskAssessment.risk_level).all()
-    risk_dist = {level: count for level, count in risk_counts}
+    # Current risk distribution: count only the latest assessment for each
+    # station. Historical/simulation assessments must not inflate dashboard
+    # totals after repeated demos.
+    latest_risk_sq = _get_latest_risk_subquery(db)
+    current_risks = db.query(latest_risk_sq).filter(
+        latest_risk_sq.c.rn == 1
+    ).all()
+    risk_dist = {"low": 0, "moderate": 0, "high": 0, "critical": 0}
+    for risk in current_risks:
+        if risk.risk_level in risk_dist:
+            risk_dist[risk.risk_level] += 1
 
     active_alerts = db.query(Alert).filter(Alert.status == "active").count()
     pending_reports = db.query(CitizenReport).filter(CitizenReport.status == "pending").count()
@@ -59,8 +64,9 @@ def get_dashboard_stats(db: Session = Depends(get_db)):
         Village.risk_zone == "high_risk"
     ).count()
 
-    # Average risk score
-    avg_risk = db.query(func.avg(RiskAssessment.risk_score)).scalar() or 0
+    # Average current risk score (latest assessment per station only).
+    current_scores = [float(r.risk_score) for r in current_risks if r.risk_score is not None]
+    avg_risk = (sum(current_scores) / len(current_scores)) if current_scores else 0
 
     # Recent reports count (last 24h)
     yesterday = datetime.utcnow() - timedelta(hours=24)
