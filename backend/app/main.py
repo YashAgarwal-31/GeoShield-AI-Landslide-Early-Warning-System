@@ -196,15 +196,29 @@ def health_check():
 @app.get("/api/health/ready", response_class=JSONResponse)
 def readiness_check(db=Depends(get_db)):
     from sqlalchemy import text
+    from app.ai_engine.risk_predictor import TRAINING_DATA_PATH
 
     try:
         db.execute(text("SELECT 1"))
     except Exception as exc:
         raise HTTPException(status_code=503, detail=f"Database unavailable: {exc}")
 
+    training_data_available = os.path.isfile(TRAINING_DATA_PATH)
+    synthetic_fallback_allowed = _env_bool(
+        "ALLOW_SYNTHETIC_MODEL_FALLBACK",
+        default=not IS_PRODUCTION,
+    )
+    if IS_PRODUCTION and not training_data_available and not synthetic_fallback_allowed:
+        raise HTTPException(
+            status_code=503,
+            detail="ML training data unavailable and synthetic fallback is disabled",
+        )
+
     return {
         "status": "ready",
         "database": "connected",
+        "ml_training_data": "available" if training_data_available else "fallback_allowed",
+        "synthetic_model_fallback": synthetic_fallback_allowed,
         "environment": APP_ENV,
         "timestamp": datetime.now(timezone.utc).replace(tzinfo=None).isoformat(),
     }
