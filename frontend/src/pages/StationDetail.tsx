@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getStation, getStationHistory, getWeather, getWeatherForecast } from '../services/api';
+import { getStation, getStationHistory, getWeather, getWeatherForecast, getAlertWebSocketUrl } from '../services/api';
 import DataSourceBadge from '../components/DataSourceBadge';
 import { t } from '../i18n/translations';
 import {
@@ -33,29 +33,74 @@ export default function StationDetail() {
   const [timeRange, setTimeRange] = useState(24);
   const [activeTab, setActiveTab] = useState<'charts' | 'forecast'>('charts');
 
+  const fetchData = useCallback(async () => {
+    if (!stationId) return;
+    try {
+      const [stationRes, historyRes, weatherRes, forecastRes] = await Promise.all([
+        getStation(stationId),
+        getStationHistory(stationId, timeRange),
+        getWeather(stationId),
+        getWeatherForecast(stationId, 48),
+      ]);
+      setStation(stationRes.data);
+      setHistory(historyRes.data);
+      setWeather(weatherRes.data);
+      setForecast(forecastRes.data.forecast);
+      setForecastKind(forecastRes.data.series_kind);
+    } catch (e) {
+      console.error('Station fetch error:', e);
+    } finally {
+      setLoading(false);
+    }
+  }, [stationId, timeRange]);
+
+  useEffect(() => {
+    fetchData();
+    const interval = setInterval(fetchData, 30000);
+    return () => clearInterval(interval);
+  }, [fetchData]);
+
   useEffect(() => {
     if (!stationId) return;
-    const fetchData = async () => {
+    let socket: WebSocket | null = null;
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+    let stopped = false;
+
+    const connect = () => {
+      if (stopped) return;
       try {
-        const [stationRes, historyRes, weatherRes, forecastRes] = await Promise.all([
-          getStation(stationId),
-          getStationHistory(stationId, timeRange),
-          getWeather(stationId),
-          getWeatherForecast(stationId, 48),
-        ]);
-        setStation(stationRes.data);
-        setHistory(historyRes.data);
-        setWeather(weatherRes.data);
-        setForecast(forecastRes.data.forecast);
-        setForecastKind(forecastRes.data.series_kind);
-      } catch (e) {
-        console.error('Station fetch error:', e);
-      } finally {
-        setLoading(false);
+        socket = new WebSocket(getAlertWebSocketUrl('all'));
+      } catch {
+        reconnectTimer = setTimeout(connect, 3000);
+        return;
       }
+      socket.onmessage = (event) => {
+        try {
+          const message = JSON.parse(event.data);
+          const eventStation = message.station_id || message.alert?.station_id;
+          if (
+            eventStation === stationId &&
+            ['sensor.reading', 'alert.created', 'alert.updated'].includes(message.type)
+          ) {
+            fetchData();
+          }
+        } catch {
+          // Polling fallback will keep the station view fresh.
+        }
+      };
+      socket.onerror = () => socket?.close();
+      socket.onclose = (event) => {
+        if (event.code !== 4401 && !stopped) reconnectTimer = setTimeout(connect, 3000);
+      };
     };
-    fetchData();
-  }, [stationId, timeRange]);
+
+    connect();
+    return () => {
+      stopped = true;
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+      socket?.close();
+    };
+  }, [stationId, fetchData]);
 
   if (loading) {
     return (
