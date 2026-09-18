@@ -8,6 +8,7 @@ import bcrypt
 from datetime import datetime, timedelta, timezone
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from app.database import get_db
 
 def _env_bool(name: str, default: bool = False) -> bool:
     value = os.getenv(name)
@@ -169,16 +170,56 @@ def verify_token(token: str) -> dict:
 
 def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
+    db=Depends(get_db),
 ) -> dict:
-    """FastAPI dependency that extracts and verifies the current user from the
-    Authorization header. Raises 401 if missing or invalid."""
+    """Verify the JWT and reconcile it with the persistent account state.
+
+    Persistent users are checked on every authenticated request so disabling an
+    account or changing its role takes effect immediately instead of waiting for
+    an already-issued JWT to expire. Production also fails closed when a token
+    references an account that no longer exists.
+    """
     if credentials is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Authentication required",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    return verify_token(credentials.credentials)
+
+    payload = verify_token(credentials.credentials)
+    normalized_email = str(payload.get("sub") or "").strip().lower()
+    if not normalized_email:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token subject",
+        )
+
+    from app.models import UserAccount
+
+    account = (
+        db.query(UserAccount)
+        .filter(UserAccount.email == normalized_email)
+        .first()
+    )
+    if account is not None:
+        if not account.is_active:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Account is disabled",
+            )
+        # Use current database identity/role so privilege changes are immediate.
+        payload["sub"] = account.email
+        payload["name"] = account.name
+        payload["role"] = account.role
+        return payload
+
+    if IS_PRODUCTION and not ENABLE_DEMO_USERS:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Account no longer exists",
+        )
+
+    return payload
 
 
 def require_role(*allowed_roles: str):
