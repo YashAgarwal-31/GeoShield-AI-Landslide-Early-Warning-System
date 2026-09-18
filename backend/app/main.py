@@ -100,11 +100,12 @@ def init_database():
                 capture_output=True, text=True, timeout=30
             )
             if result.returncode != 0:
-                print(f"[GeoShield] ⚠️  Alembic error: {result.stderr}")
-            else:
-                print("[GeoShield] ✅ Alembic migrations applied")
+                raise RuntimeError(f"Alembic migration failed: {result.stderr}")
+            print("[GeoShield] Alembic migrations applied")
         except Exception as e:
-            print(f"[GeoShield] ⚠️  Alembic failed: {e}, falling back to create_all")
+            if IS_PRODUCTION:
+                raise RuntimeError(f"Production database migration failed: {e}") from e
+            print(f"[GeoShield] Alembic failed in non-production mode: {e}; using create_all")
             Base.metadata.create_all(bind=engine)
     else:
         # Development: create_all for instant setup
