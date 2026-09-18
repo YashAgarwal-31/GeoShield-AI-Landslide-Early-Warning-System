@@ -401,10 +401,26 @@ class LandslideRiskPredictor:
 
     def _get_recommendation(self, risk_level: str, factors: list) -> str:
         recommendations = {
-            "critical": "IMMEDIATE EVACUATION recommended. Deploy emergency response teams. Activate sirens and SMS alerts for all nearby villages. Close affected roads. Expected event within hours.",
-            "high": "Heightened alert status. Pre-position rescue teams. Begin voluntary evacuation of vulnerable populations. Monitor sensor readings every 15 minutes. Close at-risk road sections.",
-            "moderate": "Enhanced monitoring. Notify district disaster management authority. Prepare evacuation plans. Check emergency supplies. Monitor rainfall forecasts closely.",
-            "low": "Normal operations. Continue routine monitoring. Maintain standard alert readiness. No immediate action required."
+            "critical": (
+                "Critical decision-support alert. Immediately escalate to the authorized "
+                "district/emergency authority, verify current field conditions and sensor "
+                "quality, and execute evacuation, siren, messaging, or road-closure actions "
+                "only under the applicable emergency SOP and authorized human decision."
+            ),
+            "high": (
+                "High-risk decision-support alert. Notify the authorized district/emergency "
+                "authority, increase field verification and sensor monitoring, and prepare "
+                "response resources and evacuation/road-control measures for authorized activation."
+            ),
+            "moderate": (
+                "Enhanced monitoring advised. Notify the responsible district authority, "
+                "verify local conditions, review contingency plans, and monitor rainfall and "
+                "sensor trends more frequently."
+            ),
+            "low": (
+                "Normal monitoring state. Continue routine observations and maintain standard "
+                "alert readiness; no model-triggered emergency action is indicated."
+            ),
         }
         return recommendations.get(risk_level, "Continue monitoring.")
 
