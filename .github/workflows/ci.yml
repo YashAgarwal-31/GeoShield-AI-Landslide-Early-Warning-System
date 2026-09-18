@@ -681,11 +681,59 @@ jobs:
         shell: pwsh
         run: npx electron-builder --win dir --x64 --publish never
 
+      - name: Verify bundled backend runtime directly
+        shell: pwsh
+        run: |
+          $resources = Resolve-Path "dist-electron/win-unpacked/resources"
+          $python = Join-Path $resources "runtime/python/python.exe"
+          $backend = Join-Path $resources "backend"
+          $data = Join-Path $env:RUNNER_TEMP "geoshield-direct-runtime"
+          New-Item -ItemType Directory -Force -Path $data | Out-Null
+
+          $env:APP_ENV = "demo"
+          $env:ENABLE_DEMO_USERS = "true"
+          $env:WEATHER_LIVE_ENABLED = "false"
+          $env:MODEL_TRAINING_ENABLED = "false"
+          $env:TRUST_PROXY_HEADERS = "false"
+          $env:AUTO_SEED_REFERENCE_DATA = "true"
+          $env:DATABASE_URL = "sqlite:///$($data.Replace('\','/'))/geoshield.db"
+          $env:REPORT_UPLOAD_DIR = Join-Path $data "uploads/reports"
+          $env:MODEL_CACHE_DIR = Join-Path $data "models"
+          $env:TRAINING_DATA_PATH = Join-Path $resources "datasets/processed/real_ner_training_data.csv"
+          $env:SATELLITE_DATA_PATH = Join-Path $resources "datasets/processed/real_satellite_data.json"
+
+          $stdout = Join-Path $env:RUNNER_TEMP "geoshield-direct.out.log"
+          $stderr = Join-Path $env:RUNNER_TEMP "geoshield-direct.err.log"
+          $process = Start-Process -FilePath $python -WorkingDirectory $backend -ArgumentList "-m","uvicorn","app.main:app","--host","127.0.0.1","--port","18084" -PassThru -RedirectStandardOutput $stdout -RedirectStandardError $stderr
+          try {
+            $ready = $false
+            for ($attempt = 1; $attempt -le 75; $attempt++) {
+              try {
+                $health = Invoke-RestMethod -Uri "http://127.0.0.1:18084/api/health/ready" -TimeoutSec 2
+                if ($health.status -eq "ready") { $ready = $true; break }
+              } catch { Start-Sleep -Seconds 1 }
+              if ($process.HasExited) { break }
+            }
+            if (-not $ready) {
+              if (Test-Path $stdout) { Get-Content $stdout }
+              if (Test-Path $stderr) { Get-Content $stderr }
+              throw "Bundled backend runtime did not become ready."
+            }
+          }
+          finally {
+            if (-not $process.HasExited) { Stop-Process -Id $process.Id -Force }
+          }
+
       - name: Smoke test packaged Electron backend
         shell: pwsh
         run: |
           $exe = Resolve-Path "dist-electron/win-unpacked/GeoShield.exe"
-          $process = Start-Process -FilePath $exe -PassThru
+          $userData = Join-Path $env:RUNNER_TEMP "geoshield-electron-user-data"
+          New-Item -ItemType Directory -Force -Path $userData | Out-Null
+          $env:GEOSHIELD_USER_DATA_DIR = $userData
+          $stdout = Join-Path $env:RUNNER_TEMP "geoshield-electron.out.log"
+          $stderr = Join-Path $env:RUNNER_TEMP "geoshield-electron.err.log"
+          $process = Start-Process -FilePath $exe -PassThru -RedirectStandardOutput $stdout -RedirectStandardError $stderr
           try {
             $ready = $false
             for ($attempt = 1; $attempt -le 90; $attempt++) {
@@ -719,6 +767,10 @@ jobs:
           }
           finally {
             cmd /c "taskkill /PID $($process.Id) /T /F" 2>$null | Out-Null
+            if (Test-Path $stdout) { Get-Content $stdout }
+            if (Test-Path $stderr) { Get-Content $stderr }
+            $backendLog = Join-Path $userData "backend.log"
+            if (Test-Path $backendLog) { Get-Content $backendLog }
           }
 
       - name: Build NSIS installer
