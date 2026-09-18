@@ -159,6 +159,30 @@ def test_admin_can_provision_and_update_station():
     assert updated.status_code == 200, updated.text
     assert updated.json()["is_active"] is False
 
+    managed = client.get(
+        "/api/sensors/stations/manage",
+        headers=_admin_headers(),
+    )
+    assert managed.status_code == 200, managed.text
+    managed_station = next(
+        row for row in managed.json() if row["station_id"] == station_id
+    )
+    assert managed_station["is_active"] is False
+    assert managed_station["slope_angle"] == 36
+
+    public_stations = client.get("/api/sensors/stations")
+    assert public_stations.status_code == 200
+    assert station_id not in {row["station_id"] for row in public_stations.json()}
+
+    reactivated = client.put(
+        f"/api/sensors/stations/{station_id}",
+        json={"is_active": True, "name": "Operational Test Station Updated"},
+        headers=_admin_headers(),
+    )
+    assert reactivated.status_code == 200, reactivated.text
+    assert reactivated.json()["is_active"] is True
+    assert reactivated.json()["name"] == "Operational Test Station Updated"
+
     db = SessionLocal()
     try:
         station = db.query(SensorStation).filter(SensorStation.station_id == station_id).first()
