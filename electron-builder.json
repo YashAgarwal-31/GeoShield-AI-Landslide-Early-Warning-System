@@ -89,7 +89,15 @@
       }
     ],
     "icon": "branding/team_logo.png",
-    "artifactName": "GeoShield-${version}-Setup.${ext}"
+    "extraResources": [
+      {
+        "from": "runtime/python",
+        "to": "runtime/python",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ]
   },
   "nsis": {
     "oneClick": false,
@@ -110,5 +118,8 @@
     "icon": "branding/team_logo.png",
     "category": "public.app-category.education"
   },
-  "compression": "maximum"
+  "compression": "maximum",
+  "portable": {
+    "artifactName": "GeoShield-${version}-Portable.${ext}"
+  }
 }

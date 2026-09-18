@@ -5,6 +5,7 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 const { spawn } = require('child_process');
+const fs = require('fs');
 
 let mainWindow;
 let backendProcess;
@@ -45,10 +46,15 @@ function startBackend() {
   const backendDir = app.isPackaged
     ? path.join(process.resourcesPath, 'backend')
     : path.join(__dirname, '..', 'backend');
-  const pythonCmd = process.platform === 'win32' ? 'python' : 'python3';
   const dataDir = app.getPath('userData');
+  const bundledPython = path.join(process.resourcesPath, 'runtime', 'python', 'python.exe');
+  const pythonCmd =
+    app.isPackaged && process.platform === 'win32' && fs.existsSync(bundledPython)
+      ? bundledPython
+      : (process.platform === 'win32' ? 'python' : 'python3');
   const databasePath = path.join(dataDir, 'geoshield.db').replace(/\\/g, '/');
   const modelCacheDir = path.join(dataDir, 'models');
+  const reportUploadDir = path.join(dataDir, 'uploads', 'reports');
 
   console.log('[GeoShield] Starting backend...');
   backendProcess = spawn(pythonCmd, [
@@ -67,6 +73,9 @@ function startBackend() {
       TRUST_PROXY_HEADERS: 'false',
       DATABASE_URL: `sqlite:///${databasePath}`,
       MODEL_CACHE_DIR: modelCacheDir,
+      REPORT_UPLOAD_DIR: reportUploadDir,
+      AUTO_SEED_REFERENCE_DATA: 'true',
+      PYTHONNOUSERSITE: '1',
       TRAINING_DATA_PATH: app.isPackaged
         ? path.join(process.resourcesPath, 'datasets', 'processed', 'real_ner_training_data.csv')
         : path.join(__dirname, '..', 'datasets', 'processed', 'real_ner_training_data.csv'),
@@ -129,6 +138,15 @@ function waitForBackend(retries = 30, delay = 1000) {
     check();
   });
 }
+
+ipcMain.handle('get-app-version', () => app.getVersion());
+ipcMain.on('window-minimize', () => mainWindow?.minimize());
+ipcMain.on('window-maximize', () => {
+  if (!mainWindow) return;
+  if (mainWindow.isMaximized()) mainWindow.unmaximize();
+  else mainWindow.maximize();
+});
+ipcMain.on('window-close', () => mainWindow?.close());
 
 app.whenReady().then(async () => {
   startBackend();
