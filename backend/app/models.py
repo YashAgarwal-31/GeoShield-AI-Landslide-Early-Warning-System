@@ -57,6 +57,8 @@ class SensorReading(Base):
     tilt_angle_y = Column(Float, default=0.0)  # degrees
     pore_water_pressure = Column(Float, default=0.0)  # kPa
     vibration_level = Column(Float, default=0.0)
+    source = Column(String, default="unknown", index=True)
+    external_id = Column(String, nullable=True, unique=True, index=True)
     timestamp = Column(DateTime, server_default=func.now())
 
 
@@ -158,3 +160,17 @@ class Village(Base):
     nearest_hospital_km = Column(Float)
     nearest_police_km = Column(Float)
     evacuation_route = Column(Text, nullable=True)
+
+
+class UserAccount(Base):
+    __tablename__ = "user_accounts"
+
+    id = Column(Integer, primary_key=True, index=True)
+    email = Column(String, unique=True, index=True, nullable=False)
+    name = Column(String, nullable=False)
+    password_hash = Column(String, nullable=False)
+    role = Column(String, nullable=False, default="citizen")
+    is_active = Column(Boolean, default=True, nullable=False)
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+    last_login_at = Column(DateTime, nullable=True)
