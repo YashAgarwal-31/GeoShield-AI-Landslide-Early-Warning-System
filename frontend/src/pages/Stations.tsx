@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   getStations,
+  getAlertWebSocketUrl,
   Station,
 } from '../services/api';
 import { t } from '../i18n/translations';
@@ -25,19 +26,59 @@ export default function Stations() {
   const [riskFilter, setRiskFilter] = useState('all');
   const [stateFilter, setStateFilter] = useState('all');
 
-  useEffect(() => {
-    const fetchStations = async () => {
-      try {
-        const res = await getStations();
-        setStations(res.data);
-      } catch (e) {
-        console.error('Stations fetch error:', e);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchStations();
+  const fetchStations = useCallback(async () => {
+    try {
+      const res = await getStations();
+      setStations(res.data);
+    } catch (e) {
+      console.error('Stations fetch error:', e);
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchStations();
+    const interval = setInterval(fetchStations, 30000);
+    return () => clearInterval(interval);
+  }, [fetchStations]);
+
+  useEffect(() => {
+    let socket: WebSocket | null = null;
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+    let stopped = false;
+
+    const connect = () => {
+      if (stopped) return;
+      try {
+        socket = new WebSocket(getAlertWebSocketUrl('all'));
+      } catch {
+        reconnectTimer = setTimeout(connect, 3000);
+        return;
+      }
+      socket.onmessage = (event) => {
+        try {
+          const message = JSON.parse(event.data);
+          if (message.type === 'sensor.reading' || message.type === 'alerts.reset') {
+            fetchStations();
+          }
+        } catch {
+          // Polling fallback will keep the view fresh.
+        }
+      };
+      socket.onerror = () => socket?.close();
+      socket.onclose = (event) => {
+        if (event.code !== 4401 && !stopped) reconnectTimer = setTimeout(connect, 3000);
+      };
+    };
+
+    connect();
+    return () => {
+      stopped = true;
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+      socket?.close();
+    };
+  }, [fetchStations]);
 
   // Get unique states for filter
   const states = [...new Set(stations.map(s => s.state))].sort();
