@@ -71,6 +71,7 @@ class EnhancedLandslidePredictor:
         self.scaler = None
         self.model_loaded = False
         self.training_source = "unknown"
+        self.training_samples = 0
         self.feature_names = [
             "latitude", "longitude", "slope", "aspect", "elevation",
             "rainfall_7day", "ndvi", "soil_moisture", "distance_to_road"
@@ -105,6 +106,7 @@ class EnhancedLandslidePredictor:
                     self.scaler = cached.get("scaler")
                     self.label_encoder = cached.get("encoder")
                     self.training_source = cached.get("training_source", "unknown")
+                    self.training_samples = int(cached.get("training_samples", 0) or 0)
                 else:
                     print("[Enhanced Predictor] Legacy unversioned cache ignored.")
                     return
@@ -126,6 +128,7 @@ class EnhancedLandslidePredictor:
             self.training_source = (
                 "controlled_training_file" if csv_path else "mixed_provenance_dataset"
             )
+            self.training_samples = len(df)
             print(
                 f"[Enhanced Predictor] Loaded {self.training_source}: "
                 f"{len(df)} samples"
@@ -140,6 +143,7 @@ class EnhancedLandslidePredictor:
                 )
             self.training_source = "synthetic_demo_fallback"
             df = self._generate_demo_data(2000)
+            self.training_samples = len(df)
             print("[Enhanced Predictor] Using explicit synthetic demo training fallback")
 
         return self._train_on_dataframe(df)
@@ -227,6 +231,7 @@ class EnhancedLandslidePredictor:
             "scaler": self.scaler,
             "encoder": self.label_encoder,
             "training_source": self.training_source,
+            "training_samples": self.training_samples,
         }, MODEL_PATH)
         self.model_loaded = True
 
@@ -284,6 +289,8 @@ class EnhancedLandslidePredictor:
             "risk_level": self._score_to_level(risk_score),
             "confidence": round(confidence, 3),
             "source": "xgboost_model",
+            "training_source": self.training_source,
+            "training_samples": self.training_samples,
             "factors": self._explain_factors(features),
             "feature_importance": feature_importance if feature_importance else None,
             "terrain_data": {
