@@ -1,4 +1,5 @@
 import { FormEvent, useEffect, useState } from 'react';
+import { useAuth } from '../App';
 import {
   createStation,
   createUser,
@@ -40,6 +41,8 @@ const EMPTY_STATION: StationCreatePayload = {
 };
 
 export default function AdminOperations() {
+  const { user } = useAuth();
+  const isSystemAdmin = user?.role === 'admin';
   const [users, setUsers] = useState<UserAccount[]>([]);
   const [managedStations, setManagedStations] = useState<ManagedStation[]>([]);
   const [readiness, setReadiness] = useState<{ status: string; database: string; environment: string } | null>(null);
@@ -59,18 +62,22 @@ export default function AdminOperations() {
   const load = async () => {
     setLoading(true);
     try {
-      const [usersResponse, readinessResponse, stationsResponse] = await Promise.all([
-        getUsers(),
+      const [readinessResponse, stationsResponse] = await Promise.all([
         getReadiness(),
         getManagedStations(),
       ]);
-      setUsers(usersResponse.data);
       setReadiness(readinessResponse.data);
       setManagedStations(stationsResponse.data);
+      if (isSystemAdmin) {
+        const usersResponse = await getUsers();
+        setUsers(usersResponse.data);
+      } else {
+        setUsers([]);
+      }
     } catch (error: any) {
       setUserMessage({
         kind: 'error',
-        text: error.response?.data?.detail || 'Unable to load administration data.',
+        text: error.response?.data?.detail || 'Unable to load operations data.',
       });
     } finally {
       setLoading(false);
@@ -216,10 +223,12 @@ export default function AdminOperations() {
         <div>
           <h1 className="text-2xl font-bold text-white flex items-center gap-2">
             <ShieldCheck className="w-6 h-6 text-green-400" />
-            System Administration
+            {isSystemAdmin ? 'System Administration' : 'District Operations'}
           </h1>
           <p className="text-dark-400 text-sm mt-1">
-            Manage persistent operators, monitoring stations, and runtime readiness.
+            {isSystemAdmin
+              ? 'Manage persistent operators, monitoring stations, and runtime readiness.'
+              : 'Manage monitoring-station operations and runtime readiness.'}
           </p>
         </div>
         <button
@@ -245,14 +254,14 @@ export default function AdminOperations() {
         </div>
         <div className="glass rounded-xl p-4 border border-dark-700">
           <Users className="w-5 h-5 text-purple-400 mb-3" />
-          <p className="text-xs text-dark-400">Persistent users</p>
-          <p className="text-lg font-semibold text-white mt-1">{users.length}</p>
+          <p className="text-xs text-dark-400">{isSystemAdmin ? 'Persistent users' : 'Managed stations'}</p>
+          <p className="text-lg font-semibold text-white mt-1">{isSystemAdmin ? users.length : managedStations.length}</p>
           <p className="text-[10px] text-dark-500 mt-1">{readiness?.environment || 'unknown'} environment</p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        <section className="glass rounded-xl p-5 border border-dark-700">
+      <div className={`grid grid-cols-1 ${isSystemAdmin ? 'xl:grid-cols-2' : ''} gap-6`}>
+        {isSystemAdmin && <section className="glass rounded-xl p-5 border border-dark-700">
           <div className="flex items-center gap-2 mb-4">
             <UserPlus className="w-5 h-5 text-green-400" />
             <div>
@@ -342,7 +351,7 @@ export default function AdminOperations() {
               </div>
             ))}
           </div>
-        </section>
+        </section>}
 
         <section className="glass rounded-xl p-5 border border-dark-700">
           <div className="flex items-center gap-2 mb-4">
@@ -365,6 +374,7 @@ export default function AdminOperations() {
             </div>
           )}
 
+          {(isSystemAdmin || editingStationId) ? (
           <form onSubmit={submitStation} className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <input
               required
@@ -471,6 +481,11 @@ export default function AdminOperations() {
               )}
             </div>
           </form>
+          ) : (
+            <div className="rounded-lg border border-blue-600/20 bg-blue-600/10 px-3 py-2 text-xs text-blue-200">
+              Select an existing monitoring station below to update district operations. New station provisioning is reserved for system administrators.
+            </div>
+          )}
 
           <div className="mt-5 border-t border-dark-700 pt-4">
             <div className="flex items-center justify-between mb-3">
