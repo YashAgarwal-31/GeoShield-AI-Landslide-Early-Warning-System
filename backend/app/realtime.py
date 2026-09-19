@@ -103,7 +103,15 @@ class AlertConnectionManager:
             },
             "district": district,
         }
-        return await self.broadcast(payload, district=district)
+        delivered = await self.broadcast(payload, district=district)
+        if event_type == "alert.created":
+            # Out-of-band delivery is best-effort and must never delay WebSocket updates.
+            try:
+                from app.services.notifications import notification_dispatcher
+                asyncio.create_task(notification_dispatcher.dispatch_alert(payload["alert"]))
+            except Exception:
+                pass
+        return delivered
 
 
 alert_manager = AlertConnectionManager()
