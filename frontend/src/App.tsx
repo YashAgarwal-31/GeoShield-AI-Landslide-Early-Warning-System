@@ -534,8 +534,8 @@ function MainLayout() {
     ...(canRunScenario
       ? [{ to: '/simulator', icon: Zap, label: 'Scenario Testing', badge: null }]
       : []),
-    ...(user?.role === 'admin'
-      ? [{ to: '/admin', icon: Settings, label: 'Administration', badge: null }]
+    ...(['admin', 'district_admin'].includes(user?.role || '')
+      ? [{ to: '/admin', icon: Settings, label: user?.role === 'admin' ? 'Administration' : 'District Operations', badge: null }]
       : []),
   ];
 
@@ -796,7 +796,7 @@ function MainLayout() {
             />
             <Route path="/satellite" element={<SatelliteData />} />
             <Route path="/flood" element={<FloodData />} />
-            {user?.role === 'admin' && <Route path="/admin" element={<AdminOperations />} />}
+            {['admin', 'district_admin'].includes(user?.role || '') && <Route path="/admin" element={<AdminOperations />} />}
             <Route
               path="/demo"
               element={canRunScenario ? <DemoFlow /> : <Navigate to="/" replace />}
