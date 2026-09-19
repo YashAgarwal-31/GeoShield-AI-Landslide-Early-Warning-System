@@ -1,64 +1,56 @@
-# GeoShield implementation status
+# GeoShield Implementation Status
 
-Last verified: September 18, 2026
+**Release target:** v1.0.0  
+**Status:** final-year major-project software baseline frozen after end-to-end
+operational verification.
 
-## Current architecture
+## Current implementation
 
 | Layer | Implementation | Status |
 |---|---|---|
-| Web UI | React, TypeScript, Vite, Tailwind, Leaflet, Recharts | Working demo |
-| API | FastAPI and Uvicorn | Working demo |
-| Persistence | SQLAlchemy with SQLite by default; Alembic support | Working locally |
-| ML | XGBoost plus Random Forest/Gradient Boosting components | Experimental |
-| Desktop wrapper | Electron | Configured; package builds need per-OS verification |
-| Mobile wrapper | Capacitor configuration | Partial |
-| Data | Historical, cached, interpolated, seeded, and generated inputs | Mixed provenance with API source labels |
-| Evaluation | District-grouped holdout and cross-validation with dataset checksum | Reproducible prototype evaluation |
-| Weather adapter | Optional Open-Meteo lookup, timeout, TTL cache, seeded fallback | Working; live mode opt-in |
-| Satellite adapter | File reload, observation age, staleness and unavailable states | Working cached snapshot |
+| Web UI | React, TypeScript, Vite, Tailwind, Leaflet, Recharts | Verified |
+| API | FastAPI + Uvicorn | Verified |
+| Persistence | SQLAlchemy, SQLite, PostgreSQL, Alembic | Verified |
+| Authentication | JWT RBAC + persistent users + revocation | Verified |
+| Sensor ingestion | API-key authenticated gateway endpoint + idempotency | Verified |
+| ML | Terrain/rainfall/sensor risk inference and evaluation tooling | Functional research prototype |
+| Real-time | Authenticated WebSockets + polling fallbacks | Verified |
+| Citizen reports | Ownership scoping + evidence + staff workflow | Verified |
+| Desktop | Electron + bundled Python backend + NSIS installer | Verified on Windows CI |
+| Android | Capacitor debug/evaluation APK | Verified build + transport policy |
+| Docker | Production-style image/runtime smoke | Verified |
+| Backup/recovery | DB + evidence archive with SHA-256 validation | Verified destructive restore drill |
+| Security gates | pip-audit, Bandit, npm audits, RBAC regressions | Passing at freeze |
 
-## Independently verified in a clean environment
+## Final CI gates
 
-- Python 3.12 dependency installation succeeds.
-- Backend API starts and responds to health, dashboard, login, and prediction requests.
-- Backend automated suite passes.
-- Frontend TypeScript production build succeeds.
-- npm dependency audit reports no known vulnerabilities at verification time.
-- Python dependency graph has no broken requirements.
-- Dataset validator records schema, imbalance, range warnings, and SHA-256.
-- ML evaluation keeps districts disjoint and reports baseline, balanced accuracy,
-  precision, recall, F1, ROC-AUC, PR-AUC, and confusion matrix.
+The frozen project requires all of these jobs to remain green:
 
-## Demo-ready capabilities
+1. `verify`
+2. `postgres-integration`
+3. `browser-e2e`
+4. `security`
+5. `windows-verification`
+6. `android-build`
+7. `electron-windows`
+8. `disaster-recovery`
 
-- Role-based demo login and JWT-protected operations
-- 20 seeded NER monitoring stations
-- Dashboard, trends, station details, map, alerts, reports, and simulator
-- Location-based risk prediction with terrain lookup
-- Flood and satellite-data demonstration pages
-- CSV and GeoJSON export
-- Multilingual interface resources
+## Field-validation boundary
 
-## Not production-ready
+The software platform is operational, but the following claims are deliberately
+not made:
 
-- No live physical sensor network is connected by default.
-- Satellite and weather responses expose mode, timestamp, age, and staleness;
-  the default weather source is still seeded demo data.
-- Demo credentials and development defaults must not be used in production.
-- Model data contains realistically generated and derived samples.
-- Probability calibration and independent field validation are pending.
-- Alert recommendations require disaster-management expert review.
-- Cloud, desktop, Android, and offline workflows require platform-specific end-to-end testing.
+- certified landslide prediction accuracy;
+- guaranteed warnings in field conditions;
+- government production approval;
+- calibrated hardware performance;
+- independent prospective validation.
 
-## Phase plan
+Physical deployment would require sensor calibration, field trials, operational
+SOPs, disaster-management review and independent model validation.
 
-1. **Baseline correctness:** align documentation with code, fix inconsistent risk guidance, and make tests reproducible.
-2. **Data provenance and ML evaluation:** dataset manifest, checksum-bound audit,
-   district-grouped validation, baseline comparison, and imbalance-aware metrics
-   are implemented. Row-level source separation and independent field labels are
-   still pending.
-3. **Integrations:** optional live weather, bounded timeout, cache, fallback,
-   satellite snapshot reload, source age, and frontend status badges are
-   implemented. Independently licensed Sentinel/IMD inputs remain future work.
-4. **Security:** remove production defaults, constrain CORS, add secret validation and abuse tests.
-5. **Presentation:** prepare a repeatable offline demo, metrics report, architecture diagrams, and viva material.
+## Freeze policy
+
+v1.0.0 is the academic baseline. New functionality should not be added to the
+frozen release solely for presentation value. Future work belongs on a later
+version/branch and should preserve the v1.0.0 tag as the reproducible baseline.

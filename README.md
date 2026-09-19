@@ -8,13 +8,17 @@
 **Final-Year Major Project — AI/ML + Communication Engineering | North Eastern Region, India**
 
 ![Major Project](https://img.shields.io/badge/Final_Year-Major_Project-green?style=for-the-badge)
+![Release](https://img.shields.io/badge/Release-v1.0.0-blue?style=for-the-badge)
+![CI](https://github.com/YashAgarwal-31/GeoShield-AI-Landslide-Early-Warning-System/actions/workflows/ci.yml/badge.svg)
 ![Operational Core](https://img.shields.io/badge/Operational_Core-Sensor_Ingestion-blue?style=for-the-badge)
 ![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=for-the-badge&logo=python&logoColor=white)
 ![React](https://img.shields.io/badge/React-18-61DAFB?style=for-the-badge&logo=react&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?style=for-the-badge&logo=fastapi&logoColor=white)
 ![AI/ML](https://img.shields.io/badge/AI/ML-Random_Forest-orange?style=for-the-badge)
 
-**Operational software build with persistent data, authenticated gateway ingestion, ML inference, GIS monitoring, and alert workflows**
+**Operational software build with persistent data, authenticated gateway ingestion, ML inference, GIS monitoring, alert workflows, desktop packaging, Android packaging, and tested backup/recovery.**
+
+**Final project freeze:** `v1.0.0` is the stable academic release baseline. See [docs/FINAL_PROJECT_FREEZE.md](docs/FINAL_PROJECT_FREEZE.md) for architecture, verification scope, limitations, and release policy.
 
 </div>
 
@@ -427,117 +431,72 @@ These metrics describe generated/derived labels and are not field accuracy.
 
 ---
 
-## 🖥️ Frontend Features
+## 🖥️ Application Modules
 
-### 10 Interactive Pages
+GeoShield's React application is organized around operational workflows rather
+than a fixed page-count claim:
 
-| Page | Description | Key Features |
-|------|-------------|--------------|
-| **🔐 Login** | Authentication gate | 4 demo accounts, role-based access |
-| **📊 Dashboard** | Prototype overview | 3 tabs (Overview/Stations/Alerts), radar chart, rankings |
-| **🗺️ Risk Map** | GIS visualization | Leaflet heatmap, roads, villages, click-to-predict |
-| **🚨 Alerts** | Warning management | Filter by status/risk, acknowledge, resolve workflow |
-| **📝 Reports** | Citizen reporting | Photo upload, geo-tagging, multi-type reports |
-| **⚡ Simulator** | Live demo tool | 4 intensity levels, AI assessment, alert generation |
-| **🛰️ Satellite** | Cached data view | 20 station profiles, demo metrics, risk scoring |
-| **📡 Station** | Deep dive | Sensor charts, AI gauge, weather, satellite data |
-| **🌊 Flood Risk** | Compound hazard | Flood-landslide correlation scatter plot |
-| **🎯 Demo Flow** | Judge walkthrough | 8-step guide, live simulation, key metrics |
+| Module | Purpose |
+|---|---|
+| **Login & RBAC** | JWT authentication with persistent users and admin-managed roles |
+| **Dashboard** | Operational summary, rainfall/risk trends, alerts, reports, roads and state views |
+| **Stations** | Live station inventory, latest telemetry and risk state |
+| **Station Detail** | Sensor history, weather, ML risk and satellite context for one station |
+| **Risk Map** | Leaflet GIS view, heatmap layers, infrastructure and click-to-predict |
+| **Alerts** | Active warning workflow with acknowledge/resolve controls |
+| **Citizen Reports** | Geo-tagged reports, evidence upload, ownership isolation and staff review |
+| **Administration** | Persistent users, password reset, station provisioning/edit/deactivation |
+| **Satellite & Flood** | Cached/source-labelled environmental context and compound-risk views |
+| **Simulator** | Controlled test-only generation of risk events and alerts |
+| **Verification Flow** | Guided academic walkthrough for reproducible demonstrations |
 
-### Dashboard Overview Tab
-
-```
-  ┌─────────────────────────────────────────────────────────────┐
-  │  🛡️ GeoShield Dashboard                    DEMO  SIH 2026 │
-  ├─────────┬─────────┬─────────┬─────────┬─────────┬─────────┤
-  │ Active  │ Active  │ People  │ Pending │ Avg     │ High-   │
-  │ Sensors │ Alerts  │ at Risk │ Reports │ Risk    │ Risk    │
-  │   20    │   36    │ 31,977  │   15    │  43.8   │    6    │
-  ├─────────┴─────────┴─────────┴─────────┴─────────┴─────────┤
-  │                                                           │
-  │  ┌─────────────────────────┐  ┌───────────────────────┐   │
-  │  │   Rainfall Trend (48h)  │  │   Risk Distribution   │   │
-  │  │   ▁▂▃▄▅▆▇█▇▆▅▄▃▂▁▂▃   │  │      ◉ Donut Chart    │   │
-  │  │   48 data points        │  │   Low:101 Mod:536     │   │
-  │  └─────────────────────────┘  │   High:338 Crit:5     │   │
-  │                               └───────────────────────┘   │
-  │  ┌──────────────┐ ┌──────────────┐ ┌──────────────────┐   │
-  │  │ Risk Trend   │ │ Road Status  │ │ State Overview   │   │
-  │  │ 48h line     │ │ Open: 5      │ │ Arunachal  45.2  │   │
-  │  │ chart        │ │ Partial: 2   │ │ Sikkim     42.1  │   │
-  │  │              │ │ Blocked: 1   │ │ Meghalaya  38.5  │   │
-  │  └──────────────┘ └──────────────┘ └──────────────────┘   │
-  └─────────────────────────────────────────────────────────────┘
-```
+The operational views consume authenticated real-time events where appropriate
+and retain polling fallbacks so temporary WebSocket loss does not permanently
+stale the UI.
 
 ---
 
 ## ⚙️ Backend API
 
-### 45 RESTful Endpoints
+GeoShield exposes a FastAPI REST/WebSocket surface grouped by capability. The
+exact route count is intentionally not frozen in documentation; the implemented
+surface is verified by automated tests.
 
+Key API groups include:
+
+- **Authentication & users** — login, persistent account lifecycle, role checks,
+  password reset and immediate session revocation.
+- **Stations & telemetry** — station provisioning, history, latest readings and
+  authenticated gateway ingestion with idempotent `external_id` handling.
+- **Prediction & ML** — location prediction, terrain-enriched inference, ML
+  health and risk grids.
+- **Alerts** — list/filter, acknowledge, resolve, statistics, history, timeline
+  and authenticated real-time alert streams.
+- **Citizen reports** — submit, list by authorization scope, evidence retrieval,
+  verify and dismiss.
+- **Dashboard/GIS/export** — operational summaries, heatmaps, trends, GeoJSON,
+  CSV and risk-zone exports.
+- **Weather/satellite/flood** — source-labelled environmental adapters and
+  compound-risk context.
+- **Health/readiness** — process liveness plus database-backed readiness.
+
+Representative paths:
+
+```text
+POST /api/auth/login
+GET  /api/health/ready
+GET  /api/sensors/stations
+POST /api/sensors/stations/{station_id}/readings
+POST /api/predict
+GET  /api/alerts
+GET  /ws/alerts/{district}
+POST /api/reports
+GET  /api/dashboard/stats
+GET  /api/export/geojson
 ```
-  API ENDPOINT STATUS
-  ═══════════════════════════════════════════════════════
 
-  DASHBOARD
-  ✅ GET  /api/dashboard/stats          → 20 stations, 5 alerts
-  ✅ GET  /api/dashboard/risk-heatmap   → 20 GIS points
-  ✅ GET  /api/dashboard/rainfall-trend → 48h hourly data
-  ✅ GET  /api/dashboard/risk-trend     → 48h risk scores
-  ✅ GET  /api/dashboard/state-summary  → 8 NER states
-
-  SENSORS
-  ✅ GET  /api/sensors/stations         → 20 stations
-  ✅ GET  /api/sensors/stations/{id}    → Station + readings + AI
-  ✅ GET  /api/sensors/stations/{id}/history → Time-range readings
-
-  ALERTS
-  ✅ GET  /api/alerts                   → All alerts (filtered)
-  ✅ GET  /api/alerts/active            → Active alerts only
-  ✅ PUT  /api/alerts/{id}/acknowledge  → Acknowledge alert
-  ✅ PUT  /api/alerts/{id}/resolve      → Resolve alert
-
-  REPORTS & INFRASTRUCTURE
-  ✅ GET  /api/reports                  → Citizen reports
-  ✅ POST /api/reports                  → Submit new report
-  ✅ GET  /api/roads                    → 48 monitored roads
-  ✅ GET  /api/villages                 → 18 tracked villages
-
-  PREDICT (Click-to-Predict)
-  ✅ POST /api/predict                  → AI risk at any lat/lng
-
-  EXPORT
-  ✅ GET  /api/export/geojson           → GIS-ready GeoJSON
-  ✅ GET  /api/export/csv               → Excel/analysis CSV
-  ✅ GET  /api/export/risk-zones        → High-risk polygons
-
-  ALERT TIMELINE
-  ✅ GET  /api/alerts/timeline          → Chronological view
-  ✅ GET  /api/alerts/history           → 30-day trend data
-  ✅ GET  /api/alerts/stats             → Alert summary stats
-
-  WEATHER
-  ✅ GET  /api/weather/{id}             → Weather/demo data
-  ✅ GET  /api/weather/{id}/forecast    → 48h forecast
-
-  SATELLITE
-  ✅ GET  /api/satellite/data           → 20 station data profiles
-  ✅ GET  /api/satellite/summary        → NER-wide metrics
-  ✅ GET  /api/satellite/risk-zones     → Risk from available data
-
-  SIMULATION
-  ✅ POST /api/simulate/landslide       → Trigger simulation
-  ✅ POST /api/simulate/batch           → Multi-station sim
-
-  WEATHER
-  ✅ GET  /api/weather/{station}        → Weather/demo data
-
-  AUTH
-  ✅ POST /api/auth/login                  → JWT token
-
-  Endpoint flows are covered by the automated backend suite.
-```
+The complete route behavior is covered by backend, browser, PostgreSQL, Docker,
+Windows, Android, Electron and disaster-recovery CI gates.
 
 ---
 
@@ -655,7 +614,7 @@ Our historical dataset covers **14 years** of landslide events across all 8 NER 
 
 ## ⚡ Landslide Simulator
 
-### For Live SIH Demo
+### For Live Project Demo
 
 The simulator allows presenters to **trigger realistic landslide events** and watch the entire system respond in real-time:
 
@@ -667,7 +626,7 @@ The simulator allows presenters to **trigger realistic landslide events** and wa
    - Alert generated if risk >= moderate
    - Dashboard updates in real-time
 
-### Demo Flow for Judges
+### Verification / Presentation Flow
 
 ```
   DEMO SEQUENCE (3 minutes)
@@ -803,7 +762,7 @@ GeoShield/
 ├── Procfile                               # Railway deployment
 ├── start.bat                              # One-click local deploy (Windows)
 ├── start.sh                               # Quick launcher script
-├── demo.sh                                # Polished demo script for judges
+├── demo.sh                                # Polished demo presentation script
 ├── electron/
 │   ├── main.js                            # Electron main process + backend auto-start
 │   └── preload.js                         # Secure IPC bridge
@@ -855,7 +814,7 @@ GeoShield/
 │   │   │   ├── Simulator.tsx              # Landslide simulator
 │   │   │   ├── SatelliteData.tsx          # Satellite demo metrics
 │   │   │   ├── FloodData.tsx              # 19 districts + correlation
-│   │   │   └── DemoFlow.tsx               # 8-step guide for judges
+│   │   │   └── DemoFlow.tsx               # 8-step verification guide
 │   │   ├── components/
 │   │   │   ├── ErrorBoundary.tsx           # Crash recovery UI
 │   │   │   └── MobileFAB.tsx              # Mobile floating action button

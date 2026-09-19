@@ -204,6 +204,12 @@ The repository CI verifies:
 - station provisioning
 - authenticated sensor ingestion and idempotency
 - ML inference triggered by sensor ingestion
+- browser-level citizen-report/admin-review workflow
+- Python dependency + static security audit
+- Windows offline startup workflow
+- Capacitor Android APK build and debug transport policy
+- bundled Electron backend, packaged Windows app and NSIS installer
+- destructive PostgreSQL backup/restore recovery drill
 
 A green CI run verifies these tested software paths. It does not certify geological prediction performance in the field.
 
@@ -234,3 +240,13 @@ The gateway should buffer timestamped readings during network loss and resend th
 For this repository, **fully working software** means that the implemented application layers run together end-to-end: authentication, persistent database, station management, ingestion, prediction, alerts, web UI, migrations, Docker and automated verification.
 
 It does **not** mean that the project is already a government-certified early-warning system or that the ML model can guarantee real-world landslide prediction without field validation.
+
+
+## 13. Frozen academic release
+
+The final-year project baseline is **v1.0.0**. Release architecture, verification
+evidence, security boundaries and field-validation limitations are documented in
+[docs/FINAL_PROJECT_FREEZE.md](docs/FINAL_PROJECT_FREEZE.md).
+
+The release tag should remain immutable. Future feature work belongs in a later
+version rather than changing the frozen academic baseline.
