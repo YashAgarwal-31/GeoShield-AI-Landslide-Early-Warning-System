@@ -20,6 +20,10 @@ jobs:
     env:
       APP_ENV: demo
       WEATHER_LIVE_ENABLED: "false"
+      SRTM_LIVE_ENABLED: "false"
+      SENTINEL2_LIVE_ENABLED: "false"
+      IMD_LIVE_ENABLED: "false"
+      FLOOD_LIVE_ENABLED: "false"
       MODEL_TRAINING_ENABLED: "false"
       TRUST_PROXY_HEADERS: "false"
 
@@ -90,6 +94,10 @@ jobs:
             -e GEOSHIELD_ADMIN_PASSWORD=runtime-ci-admin-password-12345 \
             -e AUTO_SEED_REFERENCE_DATA=true \
             -e WEATHER_LIVE_ENABLED=false \
+            -e SRTM_LIVE_ENABLED=false \
+            -e SENTINEL2_LIVE_ENABLED=false \
+            -e IMD_LIVE_ENABLED=false \
+            -e FLOOD_LIVE_ENABLED=false \
             -e MODEL_TRAINING_ENABLED=false \
             -e TRUST_PROXY_HEADERS=false \
             geoshield:ci
@@ -171,6 +179,10 @@ jobs:
             -e GEOSHIELD_ADMIN_PASSWORD="$ADMIN_PASSWORD" \
             -e AUTO_SEED_REFERENCE_DATA=true \
             -e WEATHER_LIVE_ENABLED=false \
+            -e SRTM_LIVE_ENABLED=false \
+            -e SENTINEL2_LIVE_ENABLED=false \
+            -e IMD_LIVE_ENABLED=false \
+            -e FLOOD_LIVE_ENABLED=false \
             -e MODEL_TRAINING_ENABLED=false \
             geoshield:ci
 
@@ -220,6 +232,10 @@ jobs:
       GEOSHIELD_ADMIN_NAME: CI Admin
       AUTO_SEED_REFERENCE_DATA: "true"
       WEATHER_LIVE_ENABLED: "false"
+      SRTM_LIVE_ENABLED: "false"
+      SENTINEL2_LIVE_ENABLED: "false"
+      IMD_LIVE_ENABLED: "false"
+      FLOOD_LIVE_ENABLED: "false"
       MODEL_TRAINING_ENABLED: "false"
       SENSOR_INGEST_ENABLED: "false"
       TRUST_PROXY_HEADERS: "false"
@@ -385,6 +401,10 @@ jobs:
       GEOSHIELD_ADMIN_NAME: Browser E2E Admin
       AUTO_SEED_REFERENCE_DATA: "true"
       WEATHER_LIVE_ENABLED: "false"
+      SRTM_LIVE_ENABLED: "false"
+      SENTINEL2_LIVE_ENABLED: "false"
+      IMD_LIVE_ENABLED: "false"
+      FLOOD_LIVE_ENABLED: "false"
       MODEL_TRAINING_ENABLED: "false"
       TRUST_PROXY_HEADERS: "false"
       RATE_LIMIT_ENABLED: "false"
@@ -722,6 +742,10 @@ jobs:
           $env:APP_ENV = "demo"
           $env:ENABLE_DEMO_USERS = "true"
           $env:WEATHER_LIVE_ENABLED = "false"
+          $env:SRTM_LIVE_ENABLED = "false"
+          $env:SENTINEL2_LIVE_ENABLED = "false"
+          $env:IMD_LIVE_ENABLED = "false"
+          $env:FLOOD_LIVE_ENABLED = "false"
           $env:MODEL_TRAINING_ENABLED = "false"
           $env:TRUST_PROXY_HEADERS = "false"
           $env:AUTO_SEED_REFERENCE_DATA = "true"
@@ -830,6 +854,10 @@ jobs:
       GEOSHIELD_ADMIN_NAME: Recovery Admin
       AUTO_SEED_REFERENCE_DATA: "true"
       WEATHER_LIVE_ENABLED: "false"
+      SRTM_LIVE_ENABLED: "false"
+      SENTINEL2_LIVE_ENABLED: "false"
+      IMD_LIVE_ENABLED: "false"
+      FLOOD_LIVE_ENABLED: "false"
       MODEL_TRAINING_ENABLED: "false"
       REPORT_UPLOAD_DIR: /tmp/geoshield-recovery-uploads
 
@@ -967,6 +995,10 @@ jobs:
     env:
       APP_ENV: demo
       WEATHER_LIVE_ENABLED: "false"
+      SRTM_LIVE_ENABLED: "false"
+      SENTINEL2_LIVE_ENABLED: "false"
+      IMD_LIVE_ENABLED: "false"
+      FLOOD_LIVE_ENABLED: "false"
       SRTM_LIVE_ENABLED: "false"
       SENTINEL2_LIVE_ENABLED: "false"
       IMD_LIVE_ENABLED: "false"
