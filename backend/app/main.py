@@ -51,7 +51,7 @@ def _cors_origins() -> list[str]:
 
 
 from app.database import engine, Base, SessionLocal
-from app.routers import sensors, dashboard, alerts, reports, weather, simulator, satellite, predict, alerts_timeline, flood, ml_enhanced, users, integrations
+from app.routers import sensors, dashboard, alerts, reports, weather, simulator, satellite, predict, alerts_timeline, flood, ml_enhanced, users, integrations, communications
 from app.auth import authenticate_user, create_token, ensure_bootstrap_admin, resolve_token_user
 from app.realtime import alert_manager
 from app.database import get_db
@@ -147,7 +147,7 @@ FRONTEND_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..
 app = FastAPI(
     title="GeoShield API",
     description="AI-Based Early Warning and Landslide Risk Monitoring System for NER",
-    version="1.1.0",
+    version="1.2.0",
 )
 
 app.add_middleware(
@@ -184,6 +184,7 @@ app.include_router(flood.router)
 app.include_router(ml_enhanced.router)
 app.include_router(users.router)
 app.include_router(integrations.router)
+app.include_router(communications.router)
 
 
 @app.get("/health", response_class=JSONResponse)
@@ -310,19 +311,19 @@ if os.path.exists(FRONTEND_DIR):
         if full_path:
             normalized = os.path.normpath(full_path).lstrip(os.sep)
             if normalized.startswith("..") or os.path.isabs(normalized):
-                return {"message": "Not found", "version": "1.1.0"}
+                return {"message": "Not found", "version": "1.2.0"}
             file_path = os.path.abspath(os.path.join(FRONTEND_DIR, normalized))
             # Use commonpath rather than a string prefix check so sibling paths
             # such as "dist-evil" can never pass containment validation.
             try:
                 if os.path.commonpath([FRONTEND_DIR, file_path]) != FRONTEND_DIR:
-                    return {"message": "Not found", "version": "1.1.0"}
+                    return {"message": "Not found", "version": "1.2.0"}
             except ValueError:
-                return {"message": "Not found", "version": "1.1.0"}
+                return {"message": "Not found", "version": "1.2.0"}
             if os.path.isfile(file_path):
                 return FileResponse(file_path)
         # Serve index.html for all other routes (SPA routing)
         index_path = os.path.join(FRONTEND_DIR, "index.html")
         if os.path.isfile(index_path):
             return FileResponse(index_path)
-        return {"message": "GeoShield API", "version": "1.1.0"}
+        return {"message": "GeoShield API", "version": "1.2.0"}

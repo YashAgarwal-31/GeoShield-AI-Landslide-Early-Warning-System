@@ -1,7 +1,7 @@
 import { HashRouter as Router, Routes, Route, NavLink, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { useState, useEffect, createContext, useContext } from 'react';
 import { t, setLanguage, getCurrentLanguage, Language, languages } from './i18n/translations';
-import { loginAPI, setStoredToken, clearStoredToken, getStoredToken, getAlertStats, getReadiness, getAlertWebSocketUrl, getServerUrl, setServerUrl, isMobileApp, normalizeServerBase, api } from './services/api';
+import { loginAPI, setStoredToken, clearStoredToken, getStoredToken, getAlertStats, getReadiness, getAlertWebSocketUrl, getServerUrl, setServerUrl, isMobileApp, normalizeServerBase, getWebPushPublicKey, subscribeWebPush, api } from './services/api';
 import Dashboard from './pages/Dashboard';
 import RiskMap from './pages/RiskMap';
 import Alerts from './pages/Alerts';
@@ -430,6 +430,7 @@ function MainLayout() {
   const [systemReady, setSystemReady] = useState<boolean | null>(null);
   const [liveStreamConnected, setLiveStreamConnected] = useState(false);
   const [serverUrl, setServerUrlState] = useState(getServerUrl());
+  const [pushSetupMessage, setPushSetupMessage] = useState('');
   const { user, logout } = useAuth();
   const location = useLocation();
 
@@ -531,11 +532,50 @@ function MainLayout() {
   };
 
   const enableBrowserNotifications = async () => {
-    if (typeof Notification === 'undefined') return;
+    setPushSetupMessage('');
+    if (
+      typeof Notification === 'undefined' ||
+      !('serviceWorker' in navigator) ||
+      !('PushManager' in window)
+    ) {
+      setPushSetupMessage('Web Push is not supported on this browser/device.');
+      return;
+    }
+
     try {
-      await Notification.requestPermission();
-    } catch {
-      // Browser policy can block the permission prompt; WebSocket alerts still work.
+      const permission = await Notification.requestPermission();
+      if (permission !== 'granted') {
+        setPushSetupMessage('Notification permission was not granted.');
+        return;
+      }
+
+      const registration = await navigator.serviceWorker.ready;
+      let subscription = await registration.pushManager.getSubscription();
+
+      if (!subscription) {
+        const keyResponse = await getWebPushPublicKey();
+        const base64 = keyResponse.data.public_key
+          .replace(/-/g, '+')
+          .replace(/_/g, '/');
+        const padded = base64 + '='.repeat((4 - (base64.length % 4)) % 4);
+        const raw = window.atob(padded);
+        const applicationServerKey = Uint8Array.from(
+          Array.from(raw).map((char) => char.charCodeAt(0)),
+        );
+        subscription = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey,
+        });
+      }
+
+      await subscribeWebPush(subscription.toJSON(), 'all');
+      setPushSetupMessage('Emergency Web Push is active for this device.');
+    } catch (error: any) {
+      setPushSetupMessage(
+        error?.response?.data?.detail ||
+        error?.message ||
+        'Unable to activate Web Push on this device.',
+      );
     }
   };
 
@@ -691,8 +731,11 @@ function MainLayout() {
                  onClick={enableBrowserNotifications}
                  className="w-full text-[11px] px-2 py-1.5 rounded-lg bg-amber-600/10 text-amber-300 border border-amber-600/30 hover:bg-amber-600/20"
                >
-                 Enable Push Alerts
+                 Enable Emergency Push
                </button>
+               {pushSetupMessage && (
+                 <p className="text-[10px] leading-relaxed text-dark-400">{pushSetupMessage}</p>
+               )}
                <div className="space-y-2">
                  <label className="text-[10px] text-dark-500 font-medium">Backend URL</label>
                  <div className="flex gap-1">

@@ -8,7 +8,7 @@
 **Final-Year Major Project — AI/ML + Communication Engineering | North Eastern Region, India**
 
 ![Major Project](https://img.shields.io/badge/Final_Year-Major_Project-green?style=for-the-badge)
-![Release](https://img.shields.io/badge/Release-v1.0.0-blue?style=for-the-badge)
+![Release](https://img.shields.io/badge/Release-v1.2.0-blue?style=for-the-badge)
 ![CI](https://github.com/YashAgarwal-31/GeoShield-AI-Landslide-Early-Warning-System/actions/workflows/ci.yml/badge.svg)
 ![Operational Core](https://img.shields.io/badge/Operational_Core-Sensor_Ingestion-blue?style=for-the-badge)
 ![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=for-the-badge&logo=python&logoColor=white)
@@ -18,7 +18,7 @@
 
 **Operational software build with persistent data, authenticated gateway ingestion, ML inference, GIS monitoring, alert workflows, desktop packaging, Android packaging, and tested backup/recovery.**
 
-**Final project freeze:** `v1.0.0` is the stable academic release baseline. See [docs/FINAL_PROJECT_FREEZE.md](docs/FINAL_PROJECT_FREEZE.md) for architecture, verification scope, limitations, and release policy.
+**Current verified release:** `v1.2.0` adds the ACT emergency-communications layer on top of the v1.0 academic freeze baseline. See [docs/COMMUNICATIONS.md](docs/COMMUNICATIONS.md) for SMS/Web Push architecture and [docs/FINAL_PROJECT_FREEZE.md](docs/FINAL_PROJECT_FREEZE.md) for the original freeze policy.
 
 </div>
 
@@ -169,10 +169,10 @@ GeoShield is a **full-stack AI-powered landslide monitoring prototype** designed
 |---|------------|-------------|------------|
 | 1 | **Operational Monitoring** | Persistent stations plus authenticated sensor/gateway readings with source provenance, idempotency, readiness checks, and admin provisioning | FastAPI + PostgreSQL/SQLite |
 | 2 | **AI Risk Prediction** | Experimental RF+GB VotingClassifier trained on regional and realistically generated terrain samples; independent validation is planned | scikit-learn |
-| 3 | **Warning Workflow** | Sensor observation → persistent reading → ML assessment → severity decision → persistent alert, with RBAC-controlled acknowledgement/resolution | REST + JWT/RBAC |
+| 3 | **Multi-Channel Warning Communication** | Sensor observation → ML assessment → persistent alert → district-aware WebSocket, Twilio SMS, ntfy and VAPID Web Push, with delivery logging and RBAC controls | WebSocket + Twilio + Web Push |
 | 4 | **GIS Risk Mapping** | Interactive Leaflet.js heatmaps showing the prototype risk distribution, road status, village locations, and station profiles | Leaflet.js |
 | 5 | **Citizen Reporting** | Geo-tagged photo/video reporting workflow for field officers and local residents | React + FastAPI |
-| 6 | **Multilingual UI** | Full interface translation in English, Hindi, Bengali, and Assamese covering all 90+ UI strings | i18n system |
+| 6 | **Multilingual UI** | Interface translation in English, Hindi, Bengali, Assamese, and Odia | i18n system |
 
 ---
 
@@ -574,11 +574,30 @@ Our historical dataset covers **14 years** of landslide events across all 8 NER 
                               ┌────────────────────┤
                               ▼                    ▼
                      ┌──────────────┐    ┌──────────────┐
-                     │  In-App      │    │  SMS/Push    │
-                     │  Dashboard   │    │  Notification│
-                     │  Alert       │    │  (configured)│
+                     │  In-App WS   │    │ Multi-channel│
+                     │  Dashboard   │    │ SMS + ntfy + │
+                     │  Alert       │    │ VAPID Push   │
                      └──────────────┘    └──────────────┘
 ```
+
+---
+
+### ACT Communication Layer
+
+For high-risk and critical events, GeoShield can fan out the same persisted
+alert over multiple independent communication transports:
+
+- authenticated district-scoped WebSocket for live operations;
+- **Twilio SMS**, with global and district-specific recipient routing;
+- **ntfy push** for topic/mobile delivery;
+- **standards-based VAPID Web Push**, with persistent browser/PWA subscriptions
+  and service-worker delivery even when the application tab is not active;
+- persistent delivery records plus an **Emergency Communication Center** where
+  admin/district-admin users can inspect channel readiness and run test sends.
+
+External provider failure is fail-soft: an SMS or push outage is logged without
+blocking alert persistence or the remaining warning channels. Full setup is
+documented in [docs/COMMUNICATIONS.md](docs/COMMUNICATIONS.md).
 
 ---
 
@@ -999,7 +1018,8 @@ system Python interpreter.
 | **Phase 4** | ✅ Done | Production-safe configuration, restricted privileged operations, hardened Docker/Render deployment, CI verification, repeatable offline demo scripts, and presentation/viva guide |
 | **Phase 5** | ✅ Done | Persistent operations, browser E2E, Android packaging, Windows desktop hardening, realtime sensor/report flows |
 | **Phase 6** | ✅ Done | v1.0 project freeze, release assets, disaster recovery and final baseline verification |
-| **Phase 7** | ✅ Implemented in integration branch | Live SRTM + Sentinel-2, IMD, GloFAS flood data, SMS/push adapters, offline queue/cache, district operations, Linux runtime packaging and iOS build verification |
+| **Phase 7** | ✅ Done | Live SRTM + Sentinel-2, IMD, GloFAS flood data, offline queue/cache, district operations, Linux runtime packaging and iOS build verification |
+| **Phase 8** | ✅ Done | ACT emergency communications: district-aware Twilio SMS, ntfy, VAPID Web Push, persistent push subscriptions, delivery audit log, service-worker notifications and Communication Center |
 
 ---
 

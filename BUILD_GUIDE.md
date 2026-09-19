@@ -1,6 +1,6 @@
 # GeoShield Build & Verification Guide
 
-This guide reflects GeoShield v1.1.0. The FastAPI + React runtime, Docker,
+This guide reflects GeoShield v1.2.0. The FastAPI + React runtime, Docker,
 Android, Windows Electron, Linux Electron, and unsigned iOS Simulator build are
 covered by CI verification gates.
 
@@ -146,6 +146,10 @@ Important variables are documented in `.env.example`.
 | `FLOOD_LIVE_ENABLED` | Live GloFAS river discharge |
 | `SMS_NOTIFICATIONS_ENABLED` | Twilio SMS switch; requires credentials/recipients |
 | `PUSH_NOTIFICATIONS_ENABLED` | ntfy push switch; requires a topic |
+| `WEB_PUSH_ENABLED` | Standards-based VAPID browser/PWA push switch |
+| `VAPID_PUBLIC_KEY` | Base64URL P-256 application server public key |
+| `VAPID_PRIVATE_KEY` | Secret Base64URL 32-byte P-256 private scalar; never commit |
+| `VAPID_SUBJECT` | VAPID contact identity, normally `mailto:...` |
 | `MODEL_TRAINING_ENABLED` | Explicit admin maintenance switch |
 | `TRUST_PROXY_HEADERS` | Trust forwarded client IP only behind a trusted proxy |
 | `MODEL_CACHE_DIR` | Writable model cache location for packaged runtimes |
@@ -210,3 +214,28 @@ Do not expose these demo credentials on a public production deployment.
 
 See [PHASE4_GUIDE.md](PHASE4_GUIDE.md) for the presentation sequence and viva
 preparation.
+
+
+## ACT emergency communication setup
+
+Demo/development mode auto-generates a persistent local VAPID keypair on first
+use, making browser Web Push immediately testable on localhost.
+
+For production, generate a Web Push VAPID key pair locally:
+
+```bash
+cd backend
+python ../tools/generate_vapid_keys.py
+```
+
+Copy the generated values into your deployment secrets, set a real
+`VAPID_SUBJECT`, and enable `WEB_PUSH_ENABLED=true`. After login, use
+**Enable Emergency Push** in the GeoShield settings panel to register the device.
+
+For SMS, configure `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`,
+`TWILIO_FROM_NUMBER`, and `ALERT_SMS_RECIPIENTS`, then set
+`SMS_NOTIFICATIONS_ENABLED=true`. District-specific routing is supported with
+variables such as `ALERT_SMS_RECIPIENTS_EAST_KHASI_HILLS`.
+
+Admin and district-admin users can validate both channels from the
+**Emergency Communication Center**. See [docs/COMMUNICATIONS.md](docs/COMMUNICATIONS.md).

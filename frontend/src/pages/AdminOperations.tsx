@@ -12,6 +12,12 @@ import {
   ManagedStation,
   StationCreatePayload,
   UserAccount,
+  CommunicationStatus,
+  CommunicationDelivery,
+  getCommunicationStatus,
+  getCommunicationDeliveries,
+  testSmsCommunication,
+  testPushCommunication,
 } from '../services/api';
 import {
   Activity,
@@ -22,6 +28,9 @@ import {
   ShieldCheck,
   UserPlus,
   Users,
+  Bell,
+  Send,
+  MessageSquare,
 } from 'lucide-react';
 
 type Message = { kind: 'success' | 'error'; text: string } | null;
@@ -49,6 +58,10 @@ export default function AdminOperations() {
   const [loading, setLoading] = useState(true);
   const [userMessage, setUserMessage] = useState<Message>(null);
   const [stationMessage, setStationMessage] = useState<Message>(null);
+  const [communicationMessage, setCommunicationMessage] = useState<Message>(null);
+  const [communicationStatus, setCommunicationStatus] = useState<CommunicationStatus | null>(null);
+  const [deliveries, setDeliveries] = useState<CommunicationDelivery[]>([]);
+  const [testingChannel, setTestingChannel] = useState<'sms' | 'push' | null>(null);
 
   const [newUser, setNewUser] = useState({
     email: '',
@@ -62,12 +75,16 @@ export default function AdminOperations() {
   const load = async () => {
     setLoading(true);
     try {
-      const [readinessResponse, stationsResponse] = await Promise.all([
+      const [readinessResponse, stationsResponse, communicationResponse, deliveryResponse] = await Promise.all([
         getReadiness(),
         getManagedStations(),
+        getCommunicationStatus(),
+        getCommunicationDeliveries(20),
       ]);
       setReadiness(readinessResponse.data);
       setManagedStations(stationsResponse.data);
+      setCommunicationStatus(communicationResponse.data);
+      setDeliveries(deliveryResponse.data);
       if (isSystemAdmin) {
         const usersResponse = await getUsers();
         setUsers(usersResponse.data);
@@ -212,6 +229,42 @@ export default function AdminOperations() {
     }
   };
 
+  const testCommunication = async (channel: 'sms' | 'push') => {
+    setTestingChannel(channel);
+    setCommunicationMessage(null);
+    try {
+      const request = {
+        risk_level: 'high' as const,
+        title: `GeoShield ${channel.toUpperCase()} Communication Test`,
+        message: 'ACT emergency communication channel verification from GeoShield.',
+        station_id: 'TEST-ACT',
+        district: 'all',
+      };
+      const response = channel === 'sms'
+        ? await testSmsCommunication(request)
+        : await testPushCommunication(request);
+      const delivery = response.data.delivery;
+      const sent = Number(delivery?.sent || 0);
+      const configured = Boolean(delivery?.configured);
+      setCommunicationMessage({
+        kind: sent > 0 ? 'success' : 'error',
+        text: sent > 0
+          ? `${channel.toUpperCase()} test delivered successfully (${sent} delivery/deliveries).`
+          : configured
+            ? `${channel.toUpperCase()} provider is configured, but the test did not deliver. Check delivery log/provider status.`
+            : `${channel.toUpperCase()} provider is implemented but deployment credentials/subscriptions are not configured yet.`,
+      });
+      await load();
+    } catch (error: any) {
+      setCommunicationMessage({
+        kind: 'error',
+        text: error.response?.data?.detail || `Unable to test ${channel.toUpperCase()} channel.`,
+      });
+    } finally {
+      setTestingChannel(null);
+    }
+  };
+
   const messageClass = (message: Message) =>
     message?.kind === 'success'
       ? 'border-green-600/30 bg-green-600/10 text-green-300'
@@ -259,6 +312,114 @@ export default function AdminOperations() {
           <p className="text-[10px] text-dark-500 mt-1">{readiness?.environment || 'unknown'} environment</p>
         </div>
       </div>
+
+      <section className="glass rounded-xl p-5 border border-dark-700">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <Bell className="w-5 h-5 text-amber-400" />
+            <div>
+              <h2 className="text-lg font-semibold text-white">Emergency Communication Center</h2>
+              <p className="text-xs text-dark-400">
+                Multi-channel warning delivery: Twilio SMS + ntfy + standards-based VAPID Web Push.
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              disabled={testingChannel !== null}
+              onClick={() => testCommunication('sms')}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-green-600/30 bg-green-600/10 text-green-300 text-xs hover:bg-green-600/20 disabled:opacity-50"
+            >
+              <MessageSquare className="w-3.5 h-3.5" />
+              {testingChannel === 'sms' ? 'Testing SMS…' : 'Test SMS'}
+            </button>
+            <button
+              type="button"
+              disabled={testingChannel !== null}
+              onClick={() => testCommunication('push')}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-amber-600/30 bg-amber-600/10 text-amber-300 text-xs hover:bg-amber-600/20 disabled:opacity-50"
+            >
+              <Send className="w-3.5 h-3.5" />
+              {testingChannel === 'push' ? 'Testing Push…' : 'Test Push'}
+            </button>
+          </div>
+        </div>
+
+        {communicationMessage && (
+          <div className={`mb-4 rounded-lg border px-3 py-2 text-xs ${messageClass(communicationMessage)}`}>
+            {communicationMessage.text}
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+          {[
+            {
+              label: 'SMS / Twilio',
+              enabled: communicationStatus?.sms.enabled,
+              configured: communicationStatus?.sms.configured,
+              detail: 'District-aware emergency SMS',
+            },
+            {
+              label: 'Topic Push / ntfy',
+              enabled: communicationStatus?.topic_push.enabled,
+              configured: communicationStatus?.topic_push.configured,
+              detail: 'Mobile/topic push channel',
+            },
+            {
+              label: 'Web Push / VAPID',
+              enabled: communicationStatus?.web_push.enabled,
+              configured: communicationStatus?.web_push.configured,
+              detail: `${communicationStatus?.web_push.active_subscriptions || 0} active device subscriptions`,
+            },
+          ].map((channel) => (
+            <div key={channel.label} className="rounded-xl border border-dark-700 bg-dark-850/60 p-3">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-sm font-medium text-white">{channel.label}</p>
+                <span className={`px-2 py-0.5 rounded-full text-[10px] border ${
+                  channel.enabled && channel.configured
+                    ? 'border-green-600/30 bg-green-600/10 text-green-300'
+                    : channel.enabled
+                      ? 'border-amber-600/30 bg-amber-600/10 text-amber-300'
+                      : 'border-dark-600 bg-dark-800 text-dark-400'
+                }`}>
+                  {channel.enabled && channel.configured ? 'READY' : channel.enabled ? 'NEEDS CONFIG' : 'DISABLED'}
+                </span>
+              </div>
+              <p className="text-[11px] text-dark-500 mt-1">{channel.detail}</p>
+            </div>
+          ))}
+        </div>
+
+        <div className="border-t border-dark-700 pt-3">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs font-medium text-dark-300">Recent communication deliveries</p>
+            <span className="text-[10px] text-dark-500">{deliveries.length} shown</span>
+          </div>
+          <div className="max-h-44 overflow-y-auto space-y-1.5">
+            {deliveries.length === 0 ? (
+              <p className="text-[11px] text-dark-500">No delivery attempts recorded yet.</p>
+            ) : deliveries.map((delivery) => (
+              <div key={delivery.id} className="flex items-center justify-between gap-3 rounded-lg bg-dark-900/60 px-3 py-2">
+                <div className="min-w-0">
+                  <p className="text-[11px] text-white truncate">
+                    {delivery.channel.toUpperCase()} · {delivery.provider}
+                    {delivery.district ? ` · ${delivery.district}` : ''}
+                  </p>
+                  <p className="text-[10px] text-dark-500 truncate">
+                    {delivery.recipient || 'provider target'} · {delivery.created_at || 'unknown time'}
+                  </p>
+                </div>
+                <span className={`text-[10px] font-semibold ${
+                  delivery.status === 'sent' ? 'text-green-400' : 'text-red-400'
+                }`}>
+                  {delivery.status.toUpperCase()}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
 
       <div className={`grid grid-cols-1 ${isSystemAdmin ? 'xl:grid-cols-2' : ''} gap-6`}>
         {isSystemAdmin && <section className="glass rounded-xl p-5 border border-dark-700">
