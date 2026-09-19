@@ -228,7 +228,7 @@ class NotificationDispatcher:
     def _webpush_config() -> tuple[bool, str, str, str]:
         enabled = _env_bool("WEB_PUSH_ENABLED", False)
         public_key = os.getenv("VAPID_PUBLIC_KEY", "").strip()
-        private_key = os.getenv("VAPID_PRIVATE_KEY", "").strip()
+        private_key = os.getenv("VAPID_PRIVATE_KEY", "").strip().replace("\\n", "\n")
         subject = os.getenv("VAPID_SUBJECT", "mailto:admin@geoshield.local").strip()
         return enabled, public_key, private_key, subject
 
