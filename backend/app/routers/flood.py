@@ -12,6 +12,7 @@ import json
 
 from app.database import get_db
 from app.models import SensorStation, WeatherData
+from app.services.flood_live import flood_forecast_adapter
 
 router = APIRouter(prefix="/api/flood", tags=["flood"])
 
@@ -44,11 +45,28 @@ FLOOD_RISK_DATA = {
 def get_flood_data(
     state: Optional[str] = None,
     min_risk: Optional[int] = Query(None, ge=0, le=100),
+    db: Session = Depends(get_db),
 ):
     """
     Get flood risk data for NER districts.
     Data sourced from Asia Flood Atlas and IMD historical records.
     """
+    # Resolve one representative station coordinate per district and request all
+    # river-discharge series in one live GloFAS call. Historical baseline data
+    # remains available when the external provider is unavailable.
+    district_coords = {}
+    for station in db.query(SensorStation).filter(SensorStation.is_active == True).all():
+        district_coords.setdefault(station.district, (station.latitude, station.longitude))
+    live_districts = [district for district in FLOOD_RISK_DATA if district in district_coords]
+    live_values, live_source = flood_forecast_adapter.batch(
+        [district_coords[district] for district in live_districts]
+    )
+    live_by_district = {
+        district: live_values[index]
+        for index, district in enumerate(live_districts)
+        if index < len(live_values)
+    }
+
     results = []
     for district, data in FLOOD_RISK_DATA.items():
         if min_risk and data["risk"] < min_risk:
@@ -59,6 +77,7 @@ def get_flood_data(
             "historical_events": data["events_2011_2024"],
             "flood_risk_score": data["risk"],
             "river_systems": data["rivers"],
+            "live_discharge": live_by_district.get(district),
         })
 
     # Sort by risk descending
@@ -68,6 +87,7 @@ def get_flood_data(
         "data": results,
         "total_districts": len(results),
         "data_source": "Asia Flood Atlas + IMD Historical Records",
+        "live_source": live_source,
         "timestamp": datetime.now(timezone.utc).replace(tzinfo=None).isoformat(),
     }
 
