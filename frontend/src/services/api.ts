@@ -611,6 +611,50 @@ export interface FloodLandslideCorrelation {
 export const getFloodData = (minRisk?: number) =>
   api.get<{ data: FloodDistrict[]; total_districts: number; live_source?: DataSourceMetadata }>('/flood/data', { params: minRisk ? { min_risk: minRisk } : {} });
 export const getFloodSummary = () => api.get<FloodSummary>('/flood/summary');
+export interface CommunicationStatus {
+  sms: { enabled: boolean; configured: boolean; provider: string };
+  topic_push: { enabled: boolean; configured: boolean; provider: string };
+  web_push: { enabled: boolean; configured: boolean; provider: string; active_subscriptions: number };
+  delivery_records: number;
+}
+export interface CommunicationDelivery {
+  id: number;
+  alert_id: number | null;
+  channel: 'sms' | 'push';
+  provider: string;
+  recipient: string | null;
+  district: string | null;
+  status: string;
+  detail: string | null;
+  created_at: string | null;
+}
+export interface CommunicationTestPayload {
+  risk_level?: 'moderate' | 'high' | 'critical';
+  title?: string;
+  message?: string;
+  station_id?: string;
+  district?: string;
+}
+export const getCommunicationStatus = () => api.get<CommunicationStatus>('/communications/status');
+export const getWebPushPublicKey = () =>
+  api.get<{ public_key: string; provider: string }>('/communications/webpush/public-key');
+export const subscribeWebPush = (subscription: PushSubscriptionJSON, district: string = 'all') => {
+  const keys = subscription.keys || {};
+  return api.post('/communications/webpush/subscribe', {
+    endpoint: subscription.endpoint,
+    keys: { p256dh: keys.p256dh, auth: keys.auth },
+    district,
+  });
+};
+export const unsubscribeWebPush = (endpoint: string) =>
+  api.delete('/communications/webpush/subscribe', { data: { endpoint } });
+export const testSmsCommunication = (payload: CommunicationTestPayload = {}) =>
+  api.post('/communications/test/sms', payload);
+export const testPushCommunication = (payload: CommunicationTestPayload = {}) =>
+  api.post('/communications/test/push', payload);
+export const getCommunicationDeliveries = (limit: number = 50, channel?: 'sms' | 'push') =>
+  api.get<CommunicationDelivery[]>('/communications/deliveries', { params: { limit, channel } });
+
 export const getIntegrationStatus = () => api.get('/integrations/status');
 export const getLiveTerrain = (latitude: number, longitude: number) =>
   api.get('/integrations/terrain', { params: { latitude, longitude } });
