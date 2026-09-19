@@ -963,10 +963,23 @@ jobs:
 
   linux-desktop:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 35
+    env:
+      APP_ENV: demo
+      WEATHER_LIVE_ENABLED: "false"
+      SRTM_LIVE_ENABLED: "false"
+      SENTINEL2_LIVE_ENABLED: "false"
+      IMD_LIVE_ENABLED: "false"
+      FLOOD_LIVE_ENABLED: "false"
+      MODEL_TRAINING_ENABLED: "false"
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+
+      - name: Python 3.12
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
 
       - name: Node 22
         uses: actions/setup-node@v7
@@ -983,14 +996,28 @@ jobs:
           npm ci
           npm run build
 
+      - name: Prepare portable Linux Python runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
+          PYROOT="$(python -c 'import sys; print(sys.prefix)')"
+          mkdir -p runtime/python
+          cp -a "$PYROOT"/. runtime/python/
+          test -x runtime/python/bin/python3
+          runtime/python/bin/python3 -c "import fastapi, uvicorn, sklearn, rasterio; print('portable runtime ready')"
+
       - name: Install Electron dependencies
         run: npm ci
 
-      - name: Build Linux AppImage
-        run: npx electron-builder --linux AppImage --x64 --publish never
+      - name: Build Linux unpacked app and AppImage
+        run: npx electron-builder --linux dir AppImage --x64 --publish never
 
-      - name: Verify Linux package
+      - name: Verify bundled Linux runtime
         run: |
+          test -x dist-electron/linux-unpacked/resources/runtime/python/bin/python3
+          test -d dist-electron/linux-unpacked/resources/backend
           artifact="$(find dist-electron -maxdepth 1 -name '*.AppImage' -type f | head -n 1)"
           test -n "$artifact"
           test -s "$artifact"
