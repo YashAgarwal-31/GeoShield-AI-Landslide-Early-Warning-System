@@ -54,6 +54,15 @@ def integration_status():
             "configured": bool(os.getenv("NTFY_TOPIC")),
             "provider": "ntfy",
         },
+        "web_push": {
+            "enabled": _enabled("WEB_PUSH_ENABLED", False),
+            "configured": bool(
+                os.getenv("VAPID_PUBLIC_KEY")
+                and os.getenv("VAPID_PRIVATE_KEY")
+                and os.getenv("VAPID_SUBJECT")
+            ),
+            "provider": "Web Push / VAPID",
+        },
         "iot_gateway": {
             "enabled": _enabled("SENSOR_INGEST_ENABLED", False),
             "configured": bool(os.getenv("SENSOR_INGEST_API_KEY")),
