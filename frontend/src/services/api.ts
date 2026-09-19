@@ -574,6 +574,12 @@ export interface FloodDistrict {
   historical_events: number;
   flood_risk_score: number;
   river_systems: string[];
+  live_discharge?: {
+    river_discharge_today: number | null;
+    river_discharge_7d_max: number | null;
+    river_discharge_forecast_max: number | null;
+    river_discharge_unit: string;
+  } | null;
 }
 export interface FloodSummary {
   total_districts: number;
@@ -594,7 +600,7 @@ export interface FloodLandslideCorrelation {
   has_landslide_data: boolean;
 }
 export const getFloodData = (minRisk?: number) =>
-  api.get<{ data: FloodDistrict[]; total_districts: number }>('/flood/data', { params: minRisk ? { min_risk: minRisk } : {} });
+  api.get<{ data: FloodDistrict[]; total_districts: number; live_source?: DataSourceMetadata }>('/flood/data', { params: minRisk ? { min_risk: minRisk } : {} });
 export const getFloodSummary = () => api.get<FloodSummary>('/flood/summary');
 export const getIntegrationStatus = () => api.get('/integrations/status');
 export const getLiveTerrain = (latitude: number, longitude: number) =>
