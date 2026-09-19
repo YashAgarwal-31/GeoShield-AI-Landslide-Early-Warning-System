@@ -1,8 +1,8 @@
 # GeoShield Build & Verification Guide
 
-This guide reflects the post-Phase-4 stabilized repository. The **core verified
-runtime** is the FastAPI + React web application, including Docker and the
-repeatable offline presentation flow.
+This guide reflects GeoShield v1.1.0. The FastAPI + React runtime, Docker,
+Android, Windows Electron, Linux Electron, and unsigned iOS Simulator build are
+covered by CI verification gates.
 
 ## Prerequisites
 
@@ -83,8 +83,7 @@ cd backend
 python -m pytest tests -q
 ```
 
-The stabilized suite contains **100 test functions**. GitHub Actions additionally
-checks:
+GitHub Actions runs the complete backend suite and additionally checks:
 
 - `pip check` and Python compilation
 - root Electron lockfile installation and JS syntax
@@ -94,6 +93,12 @@ checks:
 - Docker image build
 - production-mode container startup
 - health, dashboard, station, prediction, and production-login smoke requests
+- browser end-to-end report workflow
+- PostgreSQL persistence and disaster recovery
+- Android Gradle APK build
+- Windows Electron installer/runtime smoke tests
+- Linux Electron AppImage packaging
+- iOS Simulator native build
 
 ## Docker
 
@@ -134,7 +139,13 @@ Important variables are documented in `.env.example`.
 | `GEOSHIELD_ADMIN_EMAIL` | Secret-managed production admin login |
 | `GEOSHIELD_ADMIN_PASSWORD` | Production admin password; >=12 chars |
 | `DATABASE_URL` | SQLite by default; can point to another SQLAlchemy DB |
-| `WEATHER_LIVE_ENABLED` | Keyless live weather adapter (default `true`; safe fallback) |
+| `WEATHER_LIVE_ENABLED` | Open-Meteo weather fallback adapter |
+| `IMD_LIVE_ENABLED` | Prefer official IMD observations when reachable |
+| `SRTM_LIVE_ENABLED` | On-demand SRTM elevation/slope |
+| `SENTINEL2_LIVE_ENABLED` | On-demand Sentinel-2 L2A NDVI |
+| `FLOOD_LIVE_ENABLED` | Live GloFAS river discharge |
+| `SMS_NOTIFICATIONS_ENABLED` | Twilio SMS switch; requires credentials/recipients |
+| `PUSH_NOTIFICATIONS_ENABLED` | ntfy push switch; requires a topic |
 | `MODEL_TRAINING_ENABLED` | Explicit admin maintenance switch |
 | `TRUST_PROXY_HEADERS` | Trust forwarded client IP only behind a trusted proxy |
 | `MODEL_CACHE_DIR` | Writable model cache location for packaged runtimes |
@@ -157,8 +168,15 @@ cd android
 ./gradlew assembleDebug
 ```
 
-Android Studio, the Android SDK, and a compatible JDK are required. The normal
-CI validates the shared TypeScript/Vite frontend, not a full APK build.
+Android Studio, the Android SDK, and a compatible JDK are required for local native development. CI generates the Capacitor Android project and builds/verifies the debug APK.
+
+## iOS wrapper
+
+The iOS client uses Capacitor and the same frontend/backend API contract. CI
+generates the native project and performs an unsigned iOS Simulator build.
+Physical-device/App Store builds require the maintainer's Apple Developer
+signing certificate and provisioning profile; those credentials stay outside
+the repository.
 
 ## Electron desktop wrapper
 
@@ -173,11 +191,7 @@ npm run build:linux
 npm run build:win
 ```
 
-The current Electron wrapper starts the bundled backend source using a compatible
-**system Python environment with GeoShield backend dependencies installed**.
-It is therefore an optional wrapper, not a self-contained Python runtime. For
-the most reproducible major-project demonstration, use `start-offline.bat` or
-Docker.
+Windows release builds bundle the Python backend runtime. Linux AppImage builds prepare and bundle a Python runtime under `resources/runtime/python`. Developer mode can still fall back to the system Python interpreter.
 
 ## Local demo accounts
 

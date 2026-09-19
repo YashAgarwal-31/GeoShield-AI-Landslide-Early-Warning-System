@@ -51,9 +51,11 @@ function startBackend() {
     ? path.join(process.resourcesPath, 'backend')
     : path.join(__dirname, '..', 'backend');
   const dataDir = app.getPath('userData');
-  const bundledPython = path.join(process.resourcesPath, 'runtime', 'python', 'python.exe');
+  const bundledPython = process.platform === 'win32'
+    ? path.join(process.resourcesPath, 'runtime', 'python', 'python.exe')
+    : path.join(process.resourcesPath, 'runtime', 'python', 'bin', 'python3');
   const pythonCmd =
-    app.isPackaged && process.platform === 'win32' && fs.existsSync(bundledPython)
+    app.isPackaged && fs.existsSync(bundledPython)
       ? bundledPython
       : (process.platform === 'win32' ? 'python' : 'python3');
   const databasePath = path.join(dataDir, 'geoshield.db').replace(/\\/g, '/');

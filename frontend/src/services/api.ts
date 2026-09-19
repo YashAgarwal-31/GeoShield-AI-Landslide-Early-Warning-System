@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { getCurrentLanguage } from '../i18n/translations';
+import { apiCacheKey, saveApiCache, readApiCache, queueReport, flushQueuedReports, getQueuedReportCount } from './offline';
 
 // Detect if running in Electron desktop app
 const isElectron = () => {
@@ -152,6 +153,44 @@ api.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+
+// Cache successful GET responses and serve a recent cached copy when the device
+// is offline. This makes dashboards/maps usable during temporary connectivity loss.
+api.interceptors.response.use(
+  (response) => {
+    if (String(response.config.method || 'get').toLowerCase() === 'get') {
+      saveApiCache(apiCacheKey(String(response.config.url || ''), response.config.params), response);
+    }
+    return response;
+  },
+  (error) => {
+    const config = error.config;
+    const isNetworkError = !error.response && config;
+    if (isNetworkError && String(config.method || 'get').toLowerCase() === 'get') {
+      const cached = readApiCache(apiCacheKey(String(config.url || ''), config.params));
+      if (cached) {
+        return Promise.resolve({
+          data: cached.data,
+          status: cached.status || 200,
+          statusText: 'OFFLINE CACHE',
+          headers: { 'x-geoshield-offline-cache': 'true' },
+          config,
+          request: null,
+        } as any);
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('online', () => {
+    flushQueuedReports(api).catch(() => undefined);
+  });
+}
+
+export const getOfflineQueuedReportCount = getQueuedReportCount;
+export const syncOfflineReports = () => flushQueuedReports(api);
 
 // --- Interfaces ---
 export interface Station {
@@ -431,7 +470,22 @@ export const getAlertHistory = (days: number = 30) =>
 
 // --- Reports ---
 export const getReports = (params?: { status?: string }) => api.get<Report[]>('/reports', { params });
-export const submitReport = (formData: FormData) => api.post('/reports', formData);
+export const submitReport = async (formData: FormData) => {
+  try {
+    return await api.post('/reports', formData);
+  } catch (error: any) {
+    const isNetworkError = !error?.response;
+    if (isNetworkError) {
+      await queueReport(formData);
+      return {
+        data: { queued: true, message: 'Saved offline and will sync automatically.' },
+        status: 202,
+        statusText: 'QUEUED OFFLINE',
+      } as any;
+    }
+    throw error;
+  }
+};
 export const verifyReport = (id: number) => api.put(`/reports/${id}/verify`);
 export const dismissReport = (id: number) => api.put(`/reports/${id}/dismiss`);
 export const getReportAttachment = (id: number) =>
@@ -510,6 +564,15 @@ export interface SatelliteRiskZone {
 }
 export const getSatelliteData = () => api.get<{ stations: SatelliteStation[]; total_stations: number; source: DataSourceMetadata }>('/satellite/data');
 export const getStationSatelliteData = (id: string) => api.get<{ station: SatelliteStation; source: DataSourceMetadata }>(`/satellite/data/${id}`);
+export interface LiveSatelliteResponse {
+  station_id: string;
+  location: { lat: number; lng: number; name: string; state: string };
+  live: { elevation: number | null; slope: number | null; ndvi: number | null };
+  fallback: { elevation: number | null; ndvi: number | null };
+  sources: { srtm: DataSourceMetadata; sentinel2: DataSourceMetadata; snapshot: DataSourceMetadata };
+}
+export const getLiveSatelliteData = (id: string) =>
+  api.get<LiveSatelliteResponse>(`/satellite/live/${id}`);
 export const getSatelliteSummary = () => api.get<SatelliteSummary>('/satellite/summary');
 export const getSatelliteRiskZones = () => api.get<{ risk_zones: SatelliteRiskZone[]; source: DataSourceMetadata }>('/satellite/risk-zones');
 
@@ -520,6 +583,12 @@ export interface FloodDistrict {
   historical_events: number;
   flood_risk_score: number;
   river_systems: string[];
+  live_discharge?: {
+    river_discharge_today: number | null;
+    river_discharge_7d_max: number | null;
+    river_discharge_forecast_max: number | null;
+    river_discharge_unit: string;
+  } | null;
 }
 export interface FloodSummary {
   total_districts: number;
@@ -540,8 +609,16 @@ export interface FloodLandslideCorrelation {
   has_landslide_data: boolean;
 }
 export const getFloodData = (minRisk?: number) =>
-  api.get<{ data: FloodDistrict[]; total_districts: number }>('/flood/data', { params: minRisk ? { min_risk: minRisk } : {} });
+  api.get<{ data: FloodDistrict[]; total_districts: number; live_source?: DataSourceMetadata }>('/flood/data', { params: minRisk ? { min_risk: minRisk } : {} });
 export const getFloodSummary = () => api.get<FloodSummary>('/flood/summary');
+export const getIntegrationStatus = () => api.get('/integrations/status');
+export const getLiveTerrain = (latitude: number, longitude: number) =>
+  api.get('/integrations/terrain', { params: { latitude, longitude } });
+export const getIMDCurrent = (latitude: number, longitude: number) =>
+  api.get('/integrations/imd/current', { params: { latitude, longitude } });
+export const getIMDRainfall = () => api.get('/integrations/imd/rainfall');
+export const getIMDWarnings = () => api.get('/integrations/imd/warnings');
+
 export const getFloodCorrelation = () =>
   api.get<{ correlation: FloodLandslideCorrelation[]; insight: string }>('/flood/correlation');
 

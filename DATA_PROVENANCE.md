@@ -9,15 +9,17 @@ not all have the same evidentiary status.
 |---|---|---|
 | Historical landslide records | Small regional catalog files are included | Historical/reference records |
 | Terrain and station features | Regional values plus generated/interpolated samples | Regional and realistically generated features |
-| Sensor readings | Seeded and simulated in the default build | Simulated sensor stream |
-| NDVI/vegetation | Cached values with simulated fallback | Satellite-derived/cached prototype inputs |
-| Weather | Demo data with optional external integration | Weather-integration-ready prototype |
+| Sensor readings | Seeded by default; authenticated HTTP gateway accepts real device observations when enabled | Seeded/simulated by default; gateway-ingested rows are source-labelled |
+| NDVI/vegetation | Live Sentinel-2 L2A point sampling with cached/estimated fallback | Live or explicitly fallback-labelled remote-sensing input |
+| Elevation/slope | Live SRTM point sampling with station fallback | Live or explicitly fallback-labelled terrain input |
+| Weather | IMD preferred current observation, Open-Meteo fallback, seeded database final fallback | Provider-labelled live/cached/fallback weather |
+| Flood discharge | Live GloFAS/Open-Meteo guidance plus historical district baseline | Live river-discharge guidance + historical baseline |
 | Model labels | Binary labels and severity-derived multiclass labels | Experimental labels, not field-certified ground truth |
 
 ## Claims that must not be made
 
 - The application is not a government-certified warning system.
-- The default installation is not connected to live physical IoT sensors.
+- The default installation does not include physical IoT hardware. The authenticated sensor-gateway API is implemented, but a real field device must still be configured with the deployment URL and sensor key.
 - The 12,000-row training table must not be described as 12,000 independently
   verified historical landslide events.
 - A model accuracy value must not be quoted without the dataset version,
@@ -53,9 +55,11 @@ not field accuracy and must always be presented with this limitation.
 
 ## Runtime source status
 
-Weather and satellite API responses now include a shared source object containing
-mode, provider, observation time, served time, age, freshness threshold, stale
-state, and fallback reason. Live weather is enabled by default with a bounded
-timeout; seeded weather is always labeled `fallback` when live retrieval is
-disabled or unavailable. The repository satellite file is always
-labeled `cached`, and its age is calculated from the embedded timestamps.
+Weather, flood, terrain, and satellite APIs expose provider/freshness metadata.
+Current weather prefers IMD and falls back to Open-Meteo, then to the seeded
+database. On-demand terrain enrichment uses SRTM; NDVI uses recent Sentinel-2
+L2A scenes discovered via Earth Search. Flood guidance uses GloFAS through
+Open-Meteo. All external adapters use bounded timeouts and fall back without
+making the operational API unavailable. The repository satellite file remains
+available as a deterministic cached fallback and is never presented as a live
+satellite stream.

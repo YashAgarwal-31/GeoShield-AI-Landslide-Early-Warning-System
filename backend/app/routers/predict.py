@@ -18,6 +18,7 @@ from app.database import get_db
 from app.models import SensorStation, RiskAssessment, Village, RoadStatus
 from app.ai_engine.risk_predictor import get_predictor
 from app.ai_engine.enhanced_predictor import get_enhanced_predictor
+from app.services.geospatial_live import get_live_terrain
 
 router = APIRouter(prefix="/api", tags=["predict"])
 
@@ -66,12 +67,30 @@ def predict_risk_at_location(req: PredictRequest, db: Session = Depends(get_db))
             min_dist = d
             nearest = s
 
-    # Use provided values or nearest station defaults
+    # Enrich the clicked coordinate from live SRTM + Sentinel-2 when available.
+    # Explicit user values always win, then live remote sensing, then nearest-station fallback.
+    live_terrain = get_live_terrain(req.latitude, req.longitude)
+    resolved_slope = (
+        req.slope if req.slope is not None
+        else live_terrain.slope if live_terrain.slope is not None
+        else nearest.slope_angle if nearest else 20
+    )
+    resolved_elevation = (
+        req.elevation if req.elevation is not None
+        else live_terrain.elevation if live_terrain.elevation is not None
+        else nearest.elevation if nearest else 500
+    )
+    resolved_ndvi = (
+        req.ndvi if req.ndvi is not None
+        else live_terrain.ndvi if live_terrain.ndvi is not None
+        else (nearest.vegetation_cover / 100 if nearest else 0.6)
+    )
+
     station_data = {
-        "slope_angle": req.slope if req.slope is not None else (nearest.slope_angle if nearest else 20),
-        "elevation": req.elevation if req.elevation is not None else (nearest.elevation if nearest else 500),
+        "slope_angle": resolved_slope,
+        "elevation": resolved_elevation,
         "aspect": 180,  # default
-        "vegetation_cover": (nearest.vegetation_cover if nearest else 60),
+        "vegetation_cover": max(0.0, min(100.0, resolved_ndvi * 100)),
         "distance_to_road": 5000,
     }
 
@@ -89,11 +108,11 @@ def predict_risk_at_location(req: PredictRequest, db: Session = Depends(get_db))
     enhanced_result = enhanced.predict(
         req.latitude, req.longitude,
         {
-            "slope": req.slope if req.slope else (nearest.slope_angle if nearest else None),
-            "elevation": req.elevation if req.elevation else (nearest.elevation if nearest else None),
-            "rainfall_24hr": req.rainfall_mm if req.rainfall_mm else None,
+            "slope": resolved_slope,
+            "elevation": resolved_elevation,
+            "rainfall_24hr": req.rainfall_mm if req.rainfall_mm is not None else None,
             "soil_moisture": (req.soil_moisture / 100) if req.soil_moisture is not None else None,
-            "ndvi": (nearest.vegetation_cover / 100) if nearest else None,
+            "ndvi": resolved_ndvi,
         }
     )
 
@@ -138,6 +157,15 @@ def predict_risk_at_location(req: PredictRequest, db: Session = Depends(get_db))
             "training_source": enhanced_result.get("training_source", "unknown"),
             "features": 9,
             "terrain_enriched": True,
+            "live_geospatial": {
+                "srtm": live_terrain.srtm_source,
+                "sentinel2": live_terrain.sentinel_source,
+                "resolved": {
+                    "slope": resolved_slope,
+                    "elevation": resolved_elevation,
+                    "ndvi": resolved_ndvi,
+                },
+            },
         },
         "timestamp": datetime.now(timezone.utc).replace(tzinfo=None).isoformat(),
     }

@@ -217,9 +217,9 @@ def get_stations(db: Session = Depends(get_db)):
 @router.get("/stations/manage")
 def get_managed_stations(
     db: Session = Depends(get_db),
-    user: dict = Depends(require_role("admin")),
+    user: dict = Depends(require_role("admin", "district_admin")),
 ):
-    """Return active and inactive stations for the administration console."""
+    """Return active and inactive stations for admin and district operations."""
     stations = db.query(SensorStation).order_by(
         SensorStation.state,
         SensorStation.district,

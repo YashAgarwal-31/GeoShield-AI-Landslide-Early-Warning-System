@@ -113,10 +113,111 @@ jobs:
           name: windows-release-asset
           path: release-assets/*
 
+  linux-asset:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            frontend/package-lock.json
+
+      - name: Read release version
+        shell: bash
+        run: echo "VERSION=$(tr -d '[:space:]' < RELEASE_VERSION)" >> "$GITHUB_ENV"
+
+      - name: Build frontend
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+
+      - name: Prepare bundled Python runtime
+        shell: bash
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
+          PYROOT="$(python -c 'import sys; print(sys.prefix)')"
+          mkdir -p runtime/python
+          cp -a "$PYROOT"/. runtime/python/
+          test -x runtime/python/bin/python3
+
+      - name: Build Linux AppImage
+        run: |
+          npm ci
+          npx electron-builder --linux AppImage --x64 --publish never
+
+      - name: Stage Linux asset
+        shell: bash
+        run: |
+          mkdir -p release-assets
+          artifact="$(find dist-electron -maxdepth 1 -name '*.AppImage' -type f | head -n 1)"
+          test -n "$artifact"
+          cp "$artifact" "release-assets/GeoShield-v${VERSION}-Linux-x86_64.AppImage"
+
+      - uses: actions/upload-artifact@v6
+        with:
+          name: linux-release-asset
+          path: release-assets/*
+
+  ios-simulator-asset:
+    runs-on: macos-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Read release version
+        shell: bash
+        run: echo "VERSION=$(tr -d '[:space:]' < RELEASE_VERSION)" >> "$GITHUB_ENV"
+
+      - name: Generate iOS application
+        working-directory: frontend
+        run: |
+          npm ci
+          npm install --no-save @capacitor/ios@8.5.0
+          npm run build
+          npx cap add ios
+          npx cap sync ios
+
+      - name: Build unsigned iOS simulator app
+        working-directory: frontend
+        shell: bash
+        run: |
+          if [ -d ios/App/App.xcworkspace ]; then
+            xcodebuild -workspace ios/App/App.xcworkspace -scheme App -sdk iphonesimulator -configuration Debug -derivedDataPath build-ios CODE_SIGNING_ALLOWED=NO build
+          else
+            xcodebuild -project ios/App/App.xcodeproj -scheme App -sdk iphonesimulator -configuration Debug -derivedDataPath build-ios CODE_SIGNING_ALLOWED=NO build
+          fi
+          test -d build-ios/Build/Products/Debug-iphonesimulator/App.app
+          mkdir -p ../release-assets
+          ditto -c -k --sequesterRsrc --keepParent build-ios/Build/Products/Debug-iphonesimulator/App.app "../release-assets/GeoShield-v${VERSION}-iOS-Simulator.zip"
+
+      - uses: actions/upload-artifact@v6
+        with:
+          name: ios-release-asset
+          path: release-assets/*
+
   publish:
     needs:
       - android-asset
       - windows-asset
+      - linux-asset
+      - ios-simulator-asset
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -150,5 +251,5 @@ jobs:
             gh release create "$TAG" release-assets/* \
               --target "$GITHUB_SHA" \
               --title "GeoShield ${TAG} — Final Project Freeze" \
-              --notes-file docs/RELEASE_NOTES_v1.0.0.md
+              --notes-file docs/RELEASE_NOTES_v1.1.0.md
           fi

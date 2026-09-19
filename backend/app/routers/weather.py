@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import SensorStation, WeatherData
 from app.services.external_data import source_metadata, weather_adapter
+from app.services.imd import imd_adapter
 
 
 router = APIRouter(prefix="/api/weather", tags=["weather"])
@@ -53,6 +54,30 @@ def _fallback_source(
     )
 
 
+def _try_imd_current(station: SensorStation | None):
+    if station is None:
+        return None, None
+    data, source = imd_adapter.current_nearest(station.latitude, station.longitude)
+    if data is None:
+        return None, source
+    return {
+        "temperature": data.get("temperature"),
+        "humidity": data.get("humidity"),
+        "rainfall_1h": None,
+        "rainfall_24h": data.get("rainfall_24h"),
+        "rainfall_7d": None,
+        "wind_speed": data.get("wind_speed"),
+        "wind_direction": data.get("wind_direction"),
+        "pressure": data.get("pressure"),
+        "visibility": None,
+        "forecast_rainfall_24h": None,
+        "forecast_rainfall_48h": None,
+        "timestamp": source.get("observed_at"),
+        "station_name": data.get("station"),
+        "distance_km": data.get("distance_km"),
+    }, source
+
+
 def _try_live_weather(
     station_id: str,
     station: SensorStation | None,
@@ -73,12 +98,23 @@ def get_weather(station_id: str, db: Session = Depends(get_db)):
     station = db.query(SensorStation).filter(
         SensorStation.station_id == station_id
     ).first()
+    imd_data, imd_source = _try_imd_current(station)
+    if imd_data is not None:
+        return {
+            "station_id": station_id,
+            "data": imd_data,
+            "source": imd_source,
+        }
+
     live_result, reason = _try_live_weather(station_id, station, 48)
     if live_result is not None:
+        response_source = dict(live_result.source)
+        if imd_source and imd_source.get("fallback_reason"):
+            response_source["preferred_provider_fallback"] = imd_source["fallback_reason"]
         return {
             "station_id": station_id,
             "data": live_result.data,
-            "source": live_result.source,
+            "source": response_source,
         }
 
     weather = db.query(WeatherData).filter(

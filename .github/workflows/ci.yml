@@ -20,6 +20,10 @@ jobs:
     env:
       APP_ENV: demo
       WEATHER_LIVE_ENABLED: "false"
+      SRTM_LIVE_ENABLED: "false"
+      SENTINEL2_LIVE_ENABLED: "false"
+      IMD_LIVE_ENABLED: "false"
+      FLOOD_LIVE_ENABLED: "false"
       MODEL_TRAINING_ENABLED: "false"
       TRUST_PROXY_HEADERS: "false"
 
@@ -90,6 +94,10 @@ jobs:
             -e GEOSHIELD_ADMIN_PASSWORD=runtime-ci-admin-password-12345 \
             -e AUTO_SEED_REFERENCE_DATA=true \
             -e WEATHER_LIVE_ENABLED=false \
+            -e SRTM_LIVE_ENABLED=false \
+            -e SENTINEL2_LIVE_ENABLED=false \
+            -e IMD_LIVE_ENABLED=false \
+            -e FLOOD_LIVE_ENABLED=false \
             -e MODEL_TRAINING_ENABLED=false \
             -e TRUST_PROXY_HEADERS=false \
             geoshield:ci
@@ -171,6 +179,10 @@ jobs:
             -e GEOSHIELD_ADMIN_PASSWORD="$ADMIN_PASSWORD" \
             -e AUTO_SEED_REFERENCE_DATA=true \
             -e WEATHER_LIVE_ENABLED=false \
+            -e SRTM_LIVE_ENABLED=false \
+            -e SENTINEL2_LIVE_ENABLED=false \
+            -e IMD_LIVE_ENABLED=false \
+            -e FLOOD_LIVE_ENABLED=false \
             -e MODEL_TRAINING_ENABLED=false \
             geoshield:ci
 
@@ -220,6 +232,10 @@ jobs:
       GEOSHIELD_ADMIN_NAME: CI Admin
       AUTO_SEED_REFERENCE_DATA: "true"
       WEATHER_LIVE_ENABLED: "false"
+      SRTM_LIVE_ENABLED: "false"
+      SENTINEL2_LIVE_ENABLED: "false"
+      IMD_LIVE_ENABLED: "false"
+      FLOOD_LIVE_ENABLED: "false"
       MODEL_TRAINING_ENABLED: "false"
       SENSOR_INGEST_ENABLED: "false"
       TRUST_PROXY_HEADERS: "false"
@@ -385,6 +401,10 @@ jobs:
       GEOSHIELD_ADMIN_NAME: Browser E2E Admin
       AUTO_SEED_REFERENCE_DATA: "true"
       WEATHER_LIVE_ENABLED: "false"
+      SRTM_LIVE_ENABLED: "false"
+      SENTINEL2_LIVE_ENABLED: "false"
+      IMD_LIVE_ENABLED: "false"
+      FLOOD_LIVE_ENABLED: "false"
       MODEL_TRAINING_ENABLED: "false"
       TRUST_PROXY_HEADERS: "false"
       RATE_LIMIT_ENABLED: "false"
@@ -722,6 +742,10 @@ jobs:
           $env:APP_ENV = "demo"
           $env:ENABLE_DEMO_USERS = "true"
           $env:WEATHER_LIVE_ENABLED = "false"
+          $env:SRTM_LIVE_ENABLED = "false"
+          $env:SENTINEL2_LIVE_ENABLED = "false"
+          $env:IMD_LIVE_ENABLED = "false"
+          $env:FLOOD_LIVE_ENABLED = "false"
           $env:MODEL_TRAINING_ENABLED = "false"
           $env:TRUST_PROXY_HEADERS = "false"
           $env:AUTO_SEED_REFERENCE_DATA = "true"
@@ -830,6 +854,10 @@ jobs:
       GEOSHIELD_ADMIN_NAME: Recovery Admin
       AUTO_SEED_REFERENCE_DATA: "true"
       WEATHER_LIVE_ENABLED: "false"
+      SRTM_LIVE_ENABLED: "false"
+      SENTINEL2_LIVE_ENABLED: "false"
+      IMD_LIVE_ENABLED: "false"
+      FLOOD_LIVE_ENABLED: "false"
       MODEL_TRAINING_ENABLED: "false"
       REPORT_UPLOAD_DIR: /tmp/geoshield-recovery-uploads
 
@@ -959,3 +987,110 @@ jobs:
           assert data.startswith(b"\x89PNG\r\n\x1a\n"), data[:16]
           assert b"GeoShield disaster recovery evidence" in data
           PY
+
+
+  linux-desktop:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      APP_ENV: demo
+      WEATHER_LIVE_ENABLED: "false"
+      SRTM_LIVE_ENABLED: "false"
+      SENTINEL2_LIVE_ENABLED: "false"
+      IMD_LIVE_ENABLED: "false"
+      FLOOD_LIVE_ENABLED: "false"
+      MODEL_TRAINING_ENABLED: "false"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Python 3.12
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Node 22
+        uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            frontend/package-lock.json
+
+      - name: Build frontend
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+
+      - name: Prepare portable Linux Python runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
+          PYROOT="$(python -c 'import sys; print(sys.prefix)')"
+          mkdir -p runtime/python
+          cp -a "$PYROOT"/. runtime/python/
+          test -x runtime/python/bin/python3
+          runtime/python/bin/python3 -c "import fastapi, uvicorn, sklearn, rasterio; print('portable runtime ready')"
+
+      - name: Install Electron dependencies
+        run: npm ci
+
+      - name: Build Linux unpacked app and AppImage
+        run: npx electron-builder --linux dir AppImage --x64 --publish never
+
+      - name: Verify bundled Linux runtime
+        run: |
+          test -x dist-electron/linux-unpacked/resources/runtime/python/bin/python3
+          test -d dist-electron/linux-unpacked/resources/backend
+          artifact="$(find dist-electron -maxdepth 1 -name '*.AppImage' -type f | head -n 1)"
+          test -n "$artifact"
+          test -s "$artifact"
+          echo "Linux artifact: $artifact"
+
+  ios-build:
+    runs-on: macos-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Node 22
+        uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Build web application
+        working-directory: frontend
+        run: |
+          npm ci
+          npm install --no-save @capacitor/ios@8.5.0
+          npm run build
+          npx cap add ios
+          npx cap sync ios
+
+      - name: Build iOS simulator app
+        working-directory: frontend
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -d ios/App/App.xcworkspace ]; then
+            xcodebuild -workspace ios/App/App.xcworkspace \
+              -scheme App \
+              -sdk iphonesimulator \
+              -configuration Debug \
+              CODE_SIGNING_ALLOWED=NO \
+              build
+          else
+            xcodebuild -project ios/App/App.xcodeproj \
+              -scheme App \
+              -sdk iphonesimulator \
+              -configuration Debug \
+              CODE_SIGNING_ALLOWED=NO \
+              build
+          fi
