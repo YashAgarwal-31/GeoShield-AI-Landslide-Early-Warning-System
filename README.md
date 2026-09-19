@@ -366,7 +366,7 @@ These metrics describe generated/derived labels and are not field accuracy.
 
 ---
 
-## 🛰️ Data Sources and Planned Integrations
+## 🛰️ Data Sources and Live Integrations
 
 ### Satellite & Sensor Data Integration
 
@@ -376,9 +376,10 @@ These metrics describe generated/derived labels and are not field accuracy.
 | **NASA GLC extract** | Historical Landslide Catalog | Repository dataset | 8 NER states | Point data |
 | **Kaggle rainfall extract** | India Rainfall (1901-2015) | Repository dataset | District | Monthly |
 | **Kaggle landslide extract** | India Landslide Incidents | Repository dataset | India | District |
-| **SRTM DEM** | Terrain/Elevation | 📋 Ready | Global | 30m |
-| **Sentinel-2** | NDVI Vegetation Index | 📋 Ready | Global | 10m |
-| **IMD** | Official Indian Rainfall | 📋 Ready | District | Daily |
+| **SRTM DEM** | Terrain/Elevation + local slope | ✅ Live on-demand | Global | ~30m |
+| **Sentinel-2 L2A** | NDVI Vegetation Index | ✅ Live on-demand | Global | 10m source imagery |
+| **IMD** | Current weather, district rainfall/warnings | ✅ Integrated with fail-soft fallback | India | Observation/product dependent |
+| **GloFAS via Open-Meteo** | River discharge | ✅ Live on-demand | Global rivers | ~5km |
 | **USGS** | Landslide Hazard Maps | 📋 Ready | Regional | Variable |
 
 ### Cached Satellite-Derived Metrics Per Station
@@ -446,7 +447,7 @@ than a fixed page-count claim:
 | **Alerts** | Active warning workflow with acknowledge/resolve controls |
 | **Citizen Reports** | Geo-tagged reports, evidence upload, ownership isolation and staff review |
 | **Administration** | Persistent users, password reset, station provisioning/edit/deactivation |
-| **Satellite & Flood** | Cached/source-labelled environmental context and compound-risk views |
+| **Satellite & Flood** | Live SRTM/Sentinel-2 enrichment, cached fallback, live GloFAS discharge and compound-risk views |
 | **Simulator** | Controlled test-only generation of risk events and alerts |
 | **Verification Flow** | Guided academic walkthrough for reproducible demonstrations |
 
@@ -476,8 +477,8 @@ Key API groups include:
   verify and dismiss.
 - **Dashboard/GIS/export** — operational summaries, heatmaps, trends, GeoJSON,
   CSV and risk-zone exports.
-- **Weather/satellite/flood** — source-labelled environmental adapters and
-  compound-risk context.
+- **Weather/satellite/flood** — IMD-preferred weather, live SRTM terrain,
+  Sentinel-2 NDVI, live GloFAS discharge, explicit provenance and compound-risk context.
 - **Health/readiness** — process liveness plus database-backed readiness.
 
 Representative paths:
@@ -493,6 +494,9 @@ GET  /ws/alerts/{district}
 POST /api/reports
 GET  /api/dashboard/stats
 GET  /api/export/geojson
+GET  /api/integrations/terrain
+GET  /api/integrations/imd/current
+GET  /api/satellite/live/{station_id}
 ```
 
 The complete route behavior is covered by backend, browser, PostgreSQL, Docker,
@@ -572,7 +576,7 @@ Our historical dataset covers **14 years** of landslide events across all 8 NER 
                      ┌──────────────┐    ┌──────────────┐
                      │  In-App      │    │  SMS/Push    │
                      │  Dashboard   │    │  Notification│
-                     │  Alert       │    │  (planned)   │
+                     │  Alert       │    │  (configured)│
                      └──────────────┘    └──────────────┘
 ```
 
@@ -670,7 +674,7 @@ The simulator allows presenters to **trigger realistic landslide events** and wa
 
 ### Compound Hazard Analysis
 
-GeoShield integrates **flood-landslide correlation** data for all 19 NER districts, sourced from the Asia Flood Atlas and IMD historical records. The system computes **compound risk** (0.4 × flood risk + 0.6 × landslide risk) to identify districts facing dual hazards.
+GeoShield combines **historical flood-landslide correlation** data for NER districts with **live GloFAS river-discharge guidance** fetched through Open-Meteo when available. The historical baseline remains available offline. The prototype compound-risk view uses 0.4 × flood baseline risk + 0.6 × current landslide risk and displays live discharge separately rather than presenting it as a field-certified flood probability.
 
 | District | Flood Risk | Events | Rivers |
 |----------|-----------|--------|--------|
@@ -687,7 +691,6 @@ GeoShield integrates **flood-landslide correlation** data for all 19 NER distric
 | `GET /api/flood/data` | District-level flood risk data |
 | `GET /api/flood/summary` | Aggregated NER flood metrics |
 | `GET /api/flood/correlation` | Flood × landslide compound risk scatter |
-|  | Flood × landslide compound risk scatter |
 
 ---
 
@@ -948,9 +951,9 @@ Runtime:   dashboard + stations + prediction + persistent login + sensor-ingesti
 
 ## 📱 Mobile & Desktop Wrappers
 
-The **web/Docker/offline runtime is the fully CI-verified project path**. Mobile
-and Electron wrappers share the same frontend but have platform-specific
-prerequisites.
+Web, Docker, Android, Windows Electron, Linux Electron and the generated iOS
+simulator application are covered by CI build gates. Mobile clients share the
+same frontend and connect to the GeoShield FastAPI backend.
 
 ### Android / Capacitor
 
@@ -960,8 +963,16 @@ prerequisites.
   backend URL from the login/settings screen.
 - A fresh checkout must run `npx cap add android` before `npx cap sync android`
   because generated Android platform files are not committed.
-- CI verifies the shared TypeScript/Vite build, not a complete Android SDK/Gradle
-  APK build.
+- CI generates the Capacitor Android project, builds the Gradle debug APK and
+  verifies the package and local-backend transport.
+
+### iOS / Capacitor
+
+- The same responsive frontend is generated as a Capacitor iOS application.
+- macOS CI creates the native iOS project and performs an unsigned iOS Simulator build.
+- A physical-device/App Store IPA still requires the project owner's Apple
+  Developer signing identity and provisioning profile; those credentials are
+  intentionally not stored in the repository.
 
 See [BUILD_GUIDE.md](BUILD_GUIDE.md) for exact commands.
 
@@ -971,10 +982,10 @@ The wrapper configuration now uses packaged backend/dataset/frontend resources,
 a real PNG icon, and writable per-user SQLite/model-cache paths. Root Electron
 lockfile installation and main/preload JavaScript syntax are CI-verified.
 
-The current wrapper still relies on a compatible **system Python environment
-with GeoShield backend dependencies installed**; it does not embed a
-platform-specific Python runtime. For a fully repeatable academic demo, prefer
-`start-offline.bat` or Docker.
+Windows releases bundle their Python backend runtime. Linux AppImage builds now
+bundle a prepared Python runtime and CI verifies that the packaged resources
+contain the backend and interpreter. Local developer mode can still use the
+system Python interpreter.
 
 ---
 
@@ -986,6 +997,9 @@ platform-specific Python runtime. For a fully repeatable academic demo, prefer
 | **Phase 2** | ✅ Done | Dataset audit, provenance manifest, checksum-bound report, district-grouped ML evaluation, imbalance-aware metrics, regression tests |
 | **Phase 3** | ✅ Done | Default live weather adapter, timeout and TTL cache, seeded fallback, satellite snapshot reload, timestamps, freshness, source badges, regression tests |
 | **Phase 4** | ✅ Done | Production-safe configuration, restricted privileged operations, hardened Docker/Render deployment, CI verification, repeatable offline demo scripts, and presentation/viva guide |
+| **Phase 5** | ✅ Done | Persistent operations, browser E2E, Android packaging, Windows desktop hardening, realtime sensor/report flows |
+| **Phase 6** | ✅ Done | v1.0 project freeze, release assets, disaster recovery and final baseline verification |
+| **Phase 7** | ✅ Implemented in integration branch | Live SRTM + Sentinel-2, IMD, GloFAS flood data, SMS/push adapters, offline queue/cache, district operations, Linux runtime packaging and iOS build verification |
 
 ---
 
