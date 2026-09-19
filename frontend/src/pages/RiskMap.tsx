@@ -2,13 +2,13 @@ import { useEffect, useState, useCallback } from 'react';
 import { MapContainer, TileLayer, CircleMarker, Popup, Polyline, useMapEvents } from 'react-leaflet';
 import { useNavigate } from 'react-router-dom';
 import {
-  getStations, getRiskHeatmap, getRoads, getVillages, predictAtLocation,
+  getStations, getRiskHeatmap, getRoads, getVillages, predictAtLocation, exportGeoJSON, exportCSV,
   Station, HeatmapPoint, Road, Village, PredictResult,
 } from '../services/api';
 import { t } from '../i18n/translations';
 import {
   MapPin, Navigation, Building2,
-  MousePointerClick, X, Loader2, AlertTriangle, AlertCircle,
+  MousePointerClick, X, Loader2, AlertTriangle, AlertCircle, Download,
 } from 'lucide-react';
 
 const RISK_COLORS: Record<string, string> = {
@@ -98,6 +98,38 @@ export default function RiskMap() {
 
   const getRiskRadius = (score: number) => Math.max(6, score / 5);
 
+  const saveDownload = (blob: Blob, filename: string) => {
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = filename;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleGeoJSONExport = async () => {
+    try {
+      const response = await exportGeoJSON();
+      saveDownload(
+        new Blob([JSON.stringify(response.data, null, 2)], { type: 'application/geo+json' }),
+        'geoshield-risk-data.geojson',
+      );
+    } catch {
+      setPredictError('GeoJSON export failed.');
+    }
+  };
+
+  const handleCSVExport = async () => {
+    try {
+      const response = await exportCSV();
+      saveDownload(response.data, 'geoshield-risk-data.csv');
+    } catch {
+      setPredictError('CSV export failed.');
+    }
+  };
+
   return (
     <div className="h-full flex flex-col">
       {/* Map Controls */}
@@ -137,6 +169,21 @@ export default function RiskMap() {
             >
               🛣️ Roads
             </button>
+            <button
+              onClick={handleGeoJSONExport}
+              className="px-3 py-1.5 rounded-lg text-xs font-medium bg-dark-800 text-cyan-300 border border-dark-700 hover:border-cyan-600/50 transition-all flex items-center gap-1"
+              title="Export all station risk data as GeoJSON"
+            >
+              <Download className="w-3 h-3" /> GeoJSON
+            </button>
+            <button
+              onClick={handleCSVExport}
+              className="px-3 py-1.5 rounded-lg text-xs font-medium bg-dark-800 text-emerald-300 border border-dark-700 hover:border-emerald-600/50 transition-all flex items-center gap-1"
+              title="Export all station risk data as CSV"
+            >
+              <Download className="w-3 h-3" /> CSV
+            </button>
+
             <button
               onClick={() => setShowVillages(!showVillages)}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
