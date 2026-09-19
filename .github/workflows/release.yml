@@ -250,6 +250,6 @@ jobs:
           else
             gh release create "$TAG" release-assets/* \
               --target "$GITHUB_SHA" \
-              --title "GeoShield ${TAG} — Final Project Freeze" \
-              --notes-file docs/RELEASE_NOTES_v1.1.0.md
+              --title "GeoShield ${TAG} — ACT Emergency Communications" \
+              --notes-file docs/RELEASE_NOTES_v1.2.0.md
           fi
