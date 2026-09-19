@@ -564,6 +564,15 @@ export interface SatelliteRiskZone {
 }
 export const getSatelliteData = () => api.get<{ stations: SatelliteStation[]; total_stations: number; source: DataSourceMetadata }>('/satellite/data');
 export const getStationSatelliteData = (id: string) => api.get<{ station: SatelliteStation; source: DataSourceMetadata }>(`/satellite/data/${id}`);
+export interface LiveSatelliteResponse {
+  station_id: string;
+  location: { lat: number; lng: number; name: string; state: string };
+  live: { elevation: number | null; slope: number | null; ndvi: number | null };
+  fallback: { elevation: number | null; ndvi: number | null };
+  sources: { srtm: DataSourceMetadata; sentinel2: DataSourceMetadata; snapshot: DataSourceMetadata };
+}
+export const getLiveSatelliteData = (id: string) =>
+  api.get<LiveSatelliteResponse>(`/satellite/live/${id}`);
 export const getSatelliteSummary = () => api.get<SatelliteSummary>('/satellite/summary');
 export const getSatelliteRiskZones = () => api.get<{ risk_zones: SatelliteRiskZone[]; source: DataSourceMetadata }>('/satellite/risk-zones');
 
