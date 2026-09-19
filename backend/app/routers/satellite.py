@@ -5,6 +5,7 @@ import os
 from fastapi import APIRouter, HTTPException
 
 from app.services.external_data import SatelliteSnapshotAdapter
+from app.services.geospatial_live import get_live_terrain
 
 
 router = APIRouter(prefix="/api/satellite", tags=["satellite"])
@@ -42,6 +43,40 @@ def get_station_satellite_data(station_id: str):
         if station["id"] == station_id:
             return {"station": station, "source": source}
     raise HTTPException(status_code=404, detail="Station not found")
+
+
+@router.get("/live/{station_id}")
+def get_live_remote_sensing(station_id: str):
+    """Fetch live SRTM elevation/slope and recent Sentinel-2 NDVI for a station."""
+    data, snapshot_source = satellite_adapter.load()
+    station = next((item for item in data if item.get("id") == station_id), None)
+    if station is None:
+        raise HTTPException(status_code=404, detail="Station not found")
+
+    terrain = get_live_terrain(float(station["lat"]), float(station["lng"]))
+    return {
+        "station_id": station_id,
+        "location": {
+            "lat": station["lat"],
+            "lng": station["lng"],
+            "name": station.get("name"),
+            "state": station.get("state"),
+        },
+        "live": {
+            "elevation": terrain.elevation,
+            "slope": terrain.slope,
+            "ndvi": terrain.ndvi,
+        },
+        "fallback": {
+            "elevation": station.get("real_elevation"),
+            "ndvi": station.get("estimated_ndvi"),
+        },
+        "sources": {
+            "srtm": terrain.srtm_source,
+            "sentinel2": terrain.sentinel_source,
+            "snapshot": snapshot_source,
+        },
+    }
 
 
 @router.get("/summary")
