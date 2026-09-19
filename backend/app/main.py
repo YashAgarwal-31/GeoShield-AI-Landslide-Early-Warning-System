@@ -147,7 +147,7 @@ FRONTEND_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..
 app = FastAPI(
     title="GeoShield API",
     description="AI-Based Early Warning and Landslide Risk Monitoring System for NER",
-    version="1.1.0",
+    version="1.2.0",
 )
 
 app.add_middleware(
@@ -311,19 +311,19 @@ if os.path.exists(FRONTEND_DIR):
         if full_path:
             normalized = os.path.normpath(full_path).lstrip(os.sep)
             if normalized.startswith("..") or os.path.isabs(normalized):
-                return {"message": "Not found", "version": "1.1.0"}
+                return {"message": "Not found", "version": "1.2.0"}
             file_path = os.path.abspath(os.path.join(FRONTEND_DIR, normalized))
             # Use commonpath rather than a string prefix check so sibling paths
             # such as "dist-evil" can never pass containment validation.
             try:
                 if os.path.commonpath([FRONTEND_DIR, file_path]) != FRONTEND_DIR:
-                    return {"message": "Not found", "version": "1.1.0"}
+                    return {"message": "Not found", "version": "1.2.0"}
             except ValueError:
-                return {"message": "Not found", "version": "1.1.0"}
+                return {"message": "Not found", "version": "1.2.0"}
             if os.path.isfile(file_path):
                 return FileResponse(file_path)
         # Serve index.html for all other routes (SPA routing)
         index_path = os.path.join(FRONTEND_DIR, "index.html")
         if os.path.isfile(index_path):
             return FileResponse(index_path)
-        return {"message": "GeoShield API", "version": "1.1.0"}
+        return {"message": "GeoShield API", "version": "1.2.0"}
