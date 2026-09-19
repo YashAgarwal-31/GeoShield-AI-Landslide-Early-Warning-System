@@ -108,7 +108,9 @@ class AlertConnectionManager:
             # Out-of-band delivery is best-effort and must never delay WebSocket updates.
             try:
                 from app.services.notifications import notification_dispatcher
-                asyncio.create_task(notification_dispatcher.dispatch_alert(payload["alert"]))
+                notification_payload = dict(payload["alert"])
+                notification_payload["district"] = district
+                asyncio.create_task(notification_dispatcher.dispatch_alert(notification_payload))
             except Exception:
                 pass
         return delivered
