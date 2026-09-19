@@ -34,7 +34,11 @@ subscriptions for that district plus subscriptions configured for `all`.
 
 ## Web Push setup
 
-Generate a VAPID P-256 key pair locally:
+In local/demo mode, GeoShield automatically generates and persists a local VAPID
+P-256 key pair on first use, so browser Web Push can be demonstrated without a
+third-party account. Production does **not** auto-generate keys.
+
+For production, generate a VAPID P-256 key pair locally:
 
 ```bash
 cd backend
@@ -44,7 +48,7 @@ python ../tools/generate_vapid_keys.py
 Copy the generated Base64URL public/private values into your local/deployment secret environment and set
 a real contact address in `VAPID_SUBJECT`. Do not commit the private key.
 
-After login, use **Enable Emergency Push** in GeoShield settings. The browser
+After login, use **Enable Emergency Push** in GeoShield settings. In demo mode the server-generated local key is used automatically; in production the configured secret keypair is used. The browser
 registers its PushManager subscription with the authenticated backend.
 
 ## SMS setup
