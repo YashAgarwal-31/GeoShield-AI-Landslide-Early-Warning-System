@@ -627,9 +627,12 @@ jobs:
 
       - name: Generate and sync Capacitor Android project
         working-directory: frontend
+        env:
+          GEOSHIELD_ANDROID_DEV_TRANSPORT: "true"
         run: |
           npx cap add android
           npx cap sync android
+          npm run android:debug-transport
 
       - name: Build Android debug APK
         working-directory: frontend/android
@@ -639,8 +642,23 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          MANIFEST="frontend/android/app/src/main/AndroidManifest.xml"
-          grep -q 'android:usesCleartextTraffic="true"' "$MANIFEST"
+
+          CONFIG="frontend/android/app/src/main/assets/capacitor.config.json"
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          config = json.loads(Path("frontend/android/app/src/main/assets/capacitor.config.json").read_text())
+          assert config["server"]["cleartext"] is True, config
+          assert config["android"]["allowMixedContent"] is True, config
+          PY
+
+          MERGED_MANIFEST="$(find frontend/android/app/build/intermediates/merged_manifests/debug -name AndroidManifest.xml -print -quit)"
+          test -n "$MERGED_MANIFEST"
+          grep -q 'android:usesCleartextTraffic="true"' "$MERGED_MANIFEST"
+
+          MAIN_MANIFEST="frontend/android/app/src/main/AndroidManifest.xml"
+          ! grep -q 'android:usesCleartextTraffic="true"' "$MAIN_MANIFEST"
 
       - name: Verify Android package
         shell: bash
