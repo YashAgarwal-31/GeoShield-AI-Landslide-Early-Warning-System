@@ -4,19 +4,19 @@
 
 # 🛡️ GeoShield
 
-### AI-Based Landslide Risk Monitoring & Early-Warning Software Platform
+### AI-Driven Multi-Hazard Early Warning & Multi-Channel Emergency Communication Platform
 **Final-Year Major Project — AI/ML + Communication Engineering | North Eastern Region, India**
 
 ![Major Project](https://img.shields.io/badge/Final_Year-Major_Project-green?style=for-the-badge)
 ![Release](https://img.shields.io/badge/Release-v1.2.0-blue?style=for-the-badge)
 ![CI](https://github.com/YashAgarwal-31/GeoShield-AI-Landslide-Early-Warning-System/actions/workflows/ci.yml/badge.svg)
 ![Operational Core](https://img.shields.io/badge/Operational_Core-Sensor_Ingestion-blue?style=for-the-badge)
-![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=for-the-badge&logo=python&logoColor=white)
+![Python](https://img.shields.io/badge/Python-3.12-3776AB?style=for-the-badge&logo=python&logoColor=white)
 ![React](https://img.shields.io/badge/React-18-61DAFB?style=for-the-badge&logo=react&logoColor=white)
-![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?style=for-the-badge&logo=fastapi&logoColor=white)
-![AI/ML](https://img.shields.io/badge/AI/ML-Random_Forest-orange?style=for-the-badge)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.141.x-009688?style=for-the-badge&logo=fastapi&logoColor=white)
+![AI/ML](https://img.shields.io/badge/AI%2FML-RF%2BGB_Ensemble-orange?style=for-the-badge)
 
-**Operational software build with persistent data, authenticated gateway ingestion, ML inference, GIS monitoring, alert workflows, desktop packaging, Android packaging, and tested backup/recovery.**
+**Verified v1.2.0 build with persistent data, authenticated gateway ingestion, ML inference, GIS monitoring, live/fallback environmental integrations, district-aware emergency communications, offline-capable field workflows, and multi-platform packaging.**
 
 **Current verified release:** `v1.2.0` adds the ACT emergency-communications layer on top of the v1.0 academic freeze baseline. See [docs/COMMUNICATIONS.md](docs/COMMUNICATIONS.md) for SMS/Web Push architecture and [docs/FINAL_PROJECT_FREEZE.md](docs/FINAL_PROJECT_FREEZE.md) for the original freeze policy.
 
@@ -44,35 +44,44 @@
 
 ## 📋 Table of Contents
 
-1. [Problem Statement](#-problem-statement)
-2. [Why Landslides Happen in NER](#-why-landslides-happen-in-ner)
-3. [Our Solution](#-our-solution)
-4. [System Architecture](#-system-architecture)
-5. [AI/ML Model](#-aiml-model)
-6. [Real Data Sources](#-real-data-sources)
-7. [Frontend Features](#-frontend-features)
-8. [Backend API](#-backend-api)
-9. [Historical Data Analysis](#-historical-data-analysis)
-10. [Early Warning System](#-early-warning-system)
-11. [GIS Risk Mapping](#-gis-risk-mapping)
-12. [Landslide Simulator](#-landslide-simulator)
-13. [Satellite Data Integration](#-satellite-data-integration)
-14. [Multilingual Support](#-multilingual-support)
-15. [Quick Start](#-quick-start)
-16. [Project Structure](#-project-structure)
-17. [Tech Stack](#-tech-stack)
-18. [Results & Impact](#-results--impact)
-19. [Future Roadmap](#-future-roadmap)
-20. [Team](#-team)
+> The links below use explicit HTML anchors so they remain stable on GitHub even when headings contain emojis or are renamed.
+
+
+1. [Problem Statement](#problem-statement)
+2. [Why Landslides Happen in NER](#why-landslides-happen-in-ner)
+3. [Our Solution](#our-solution)
+4. [System Architecture](#system-architecture)
+5. [AI/ML Model](#ai-ml-model)
+6. [Data Sources & Live Integrations](#data-sources-live-integrations)
+7. [Application Modules](#application-modules)
+8. [Backend API](#backend-api)
+9. [Historical Data Analysis](#historical-data-analysis)
+10. [Early Warning System](#early-warning-system)
+11. [ACT Communication Layer](#act-communication-layer)
+12. [GIS Risk Mapping](#gis-risk-mapping)
+13. [Landslide Simulator](#landslide-simulator)
+14. [Flood Risk Monitoring](#flood-risk-monitoring)
+15. [Multilingual Support](#multilingual-support)
+16. [Quick Start](#quick-start)
+17. [Project Structure](#project-structure)
+18. [Security](#security)
+19. [Tech Stack](#tech-stack)
+20. [Results & Impact](#results-impact)
+21. [Test Results](#test-results)
+22. [Mobile & Desktop Wrappers](#mobile-desktop-wrappers)
+23. [Future Roadmap](#future-roadmap)
+24. [Major Project Maintainer](#major-project-maintainer)
 
 ---
 
+<a id="problem-statement"></a>
 ## 🎯 Problem Statement
 
 ### The Crisis
 
 The **North Eastern Region (NER)** of India comprises 8 states — Sikkim, Assam, Manipur, Mizoram, Meghalaya, Nagaland, Tripura, and Arunachal Pradesh — home to **45 million people**. This region is geologically young, tectonically active, and receives some of the highest rainfall in the world (Cherrapunji receives 11,777mm annually).
 
+<a id="why-landslides-happen-in-ner"></a>
 ### Why Landslides Happen in NER
 
 Landslides in NER are caused by a complex interplay of **geological, meteorological, and anthropogenic factors**:
@@ -157,6 +166,7 @@ Landslides in NER are caused by a complex interplay of **geological, meteorologi
 
 ---
 
+<a id="our-solution"></a>
 ## 🛡️ Our Solution
 
 ### GeoShield — A Complete Monitoring Platform
@@ -176,6 +186,7 @@ GeoShield is a **full-stack AI-powered landslide monitoring prototype** designed
 
 ---
 
+<a id="system-architecture"></a>
 ## 🏗️ System Architecture
 
 ```
@@ -196,8 +207,8 @@ GeoShield is a **full-stack AI-powered landslide monitoring prototype** designed
 │  │ Simulator │ │ Satellite │ │ Station   │                    │
 │  │           │ │           │ │           │                    │
 │  │ • 4 level │ │ • 20 stn  │ │ • Charts  │                    │
-│  │ • AI eval │ │ • Cached  │ │ • AI risk │                    │
-│  │ • History │ │ • Demo    │ │ • Weather │                    │
+│  │ • AI eval │ │ • Live +  │ │ • AI risk │                    │
+│  │ • History │ │   fallback│ │ • Weather │                    │
 │  └─────┬─────┘ └─────┬─────┘ └─────┬─────┘                    │
 ├────────┴─────────────┴─────────────┴────────────────────────────┤
 │                     ⚙️  BUSINESS LAYER                          │
@@ -232,30 +243,27 @@ GeoShield is a **full-stack AI-powered landslide monitoring prototype** designed
 │  │                                                          │   │
 │  └──────────────────────────────────────────────────────────┘   │
 ├─────────────────────────────────────────────────────────────────┤
-│                     💾  DATA LAYER                               │
+│                     💾  DATA & COMMUNICATION LAYER               │
 │                                                                 │
-│  ┌───────────┐ ┌───────────────┐ ┌──────────────┐              │
-│  │  SQLite   │ │  Open-Meteo   │ │  NASA GLC    │              │
-│  │  Database │ │  Satellite API│ │  Landslide   │              │
-│  │           │ │               │ │  Catalog     │              │
-│  │ • Stations│ │ • Elevation   │ │ • 44 events  │              │
-│  │ • Sensors │ │ • Soil moist. │ │ • 8 states   │              │
-│  │ • Alerts  │ │ • Rainfall    │ │ • 2011-2024  │              │
-│  │ • Reports │ │ • NDVI        │ │              │              │
-│  └───────────┘ └───────────────┘ └──────────────┘              │
-│  ┌───────────┐ ┌───────────────┐ ┌──────────────┐              │
-│  │  Kaggle   │ │  IMD India    │ │  USGS SRTM   │              │
-│  │  Datasets │ │  Rainfall     │ │  DEM Data    │              │
-│  │           │ │               │ │              │              │
-│  │ • 3 files │ │ • District    │ │ • 30m res    │              │
-│  │ • 528KB   │ │   rainfall    │ │ • Ready to   │              │
-│  │           │ │ • 1901-2015   │ │   integrate  │              │
-│  └───────────┘ └───────────────┘ └──────────────┘              │
+│  ┌─────────────┐ ┌───────────────┐ ┌──────────────┐            │
+│  │ PostgreSQL/ │ │ IMD +         │ │ SRTM +       │            │
+│  │ SQLite      │ │ Open-Meteo    │ │ Sentinel-2   │            │
+│  │ • Stations  │ │ • Weather     │ │ • Elevation  │            │
+│  │ • Sensors   │ │ • Rainfall    │ │ • Slope      │            │
+│  │ • Alerts    │ │ • Fallback    │ │ • NDVI       │            │
+│  └─────────────┘ └───────────────┘ └──────────────┘            │
+│  ┌─────────────┐ ┌───────────────┐ ┌──────────────┐            │
+│  │ GloFAS      │ │ NASA/Kaggle   │ │ SMS + Push   │            │
+│  │ • Discharge │ │ • Historical  │ │ • Twilio     │            │
+│  │ • Flood ctx │ │ • Training    │ │ • ntfy/VAPID │            │
+│  │ • Live      │ │ • Reference   │ │ • WebSocket  │            │
+│  └─────────────┘ └───────────────┘ └──────────────┘            │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
+<a id="ai-ml-model"></a>
 ## 🤖 AI/ML Model
 
 ### Why Machine Learning for Landslide Prediction?
@@ -366,13 +374,14 @@ These metrics describe generated/derived labels and are not field accuracy.
 
 ---
 
+<a id="data-sources-live-integrations"></a>
 ## 🛰️ Data Sources and Live Integrations
 
 ### Satellite & Sensor Data Integration
 
 | Source | Data Type | Status | Coverage | Resolution |
 |--------|-----------|--------|----------|------------|
-| **Open-Meteo-derived file** | Elevation, Soil Moisture, Weather | Cached/demo | 20 station profiles | Snapshot |
+| **Cached station snapshot** | Elevation, Soil Moisture, Weather | ✅ Deterministic fallback | 20 station profiles | Snapshot |
 | **NASA GLC extract** | Historical Landslide Catalog | Repository dataset | 8 NER states | Point data |
 | **Kaggle rainfall extract** | India Rainfall (1901-2015) | Repository dataset | District | Monthly |
 | **Kaggle landslide extract** | India Landslide Incidents | Repository dataset | India | District |
@@ -380,7 +389,7 @@ These metrics describe generated/derived labels and are not field accuracy.
 | **Sentinel-2 L2A** | NDVI Vegetation Index | ✅ Live on-demand | Global | 10m source imagery |
 | **IMD** | Current weather, district rainfall/warnings | ✅ Integrated with fail-soft fallback | India | Observation/product dependent |
 | **GloFAS via Open-Meteo** | River discharge | ✅ Live on-demand | Global rivers | ~5km |
-| **USGS** | Landslide Hazard Maps | 📋 Ready | Regional | Variable |
+| **Historical/reference datasets** | NASA GLC + curated/Kaggle extracts | ✅ Repository reference data | NER / India | Dataset dependent |
 
 ### Cached Satellite-Derived Metrics Per Station
 
@@ -432,6 +441,7 @@ These metrics describe generated/derived labels and are not field accuracy.
 
 ---
 
+<a id="application-modules"></a>
 ## 🖥️ Application Modules
 
 GeoShield's React application is organized around operational workflows rather
@@ -457,6 +467,7 @@ stale the UI.
 
 ---
 
+<a id="backend-api"></a>
 ## ⚙️ Backend API
 
 GeoShield exposes a FastAPI REST/WebSocket surface grouped by capability. The
@@ -504,6 +515,7 @@ Windows, Android, Electron and disaster-recovery CI gates.
 
 ---
 
+<a id="historical-data-analysis"></a>
 ## 📊 Historical Data Analysis
 
 ### 44 Documented Landslide Events (2011-2024)
@@ -547,6 +559,7 @@ Our historical dataset covers **14 years** of landslide events across all 8 NER 
 
 ---
 
+<a id="early-warning-system"></a>
 ## 🚨 Early Warning System
 
 ### Alert Classification
@@ -582,6 +595,7 @@ Our historical dataset covers **14 years** of landslide events across all 8 NER 
 
 ---
 
+<a id="act-communication-layer"></a>
 ### ACT Communication Layer
 
 For high-risk and critical events, GeoShield can fan out the same persisted
@@ -601,6 +615,7 @@ documented in [docs/COMMUNICATIONS.md](docs/COMMUNICATIONS.md).
 
 ---
 
+<a id="gis-risk-mapping"></a>
 ## 🗺️ GIS Risk Mapping
 
 ### Map Layers
@@ -635,6 +650,7 @@ documented in [docs/COMMUNICATIONS.md](docs/COMMUNICATIONS.md).
 
 ---
 
+<a id="landslide-simulator"></a>
 ## ⚡ Landslide Simulator
 
 ### For Live Project Demo
@@ -689,6 +705,7 @@ The simulator allows presenters to **trigger realistic landslide events** and wa
 
 ---
 
+<a id="flood-risk-monitoring"></a>
 ## 🌊 Flood Risk Monitoring
 
 ### Compound Hazard Analysis
@@ -713,6 +730,7 @@ GeoShield combines **historical flood-landslide correlation** data for NER distr
 
 ---
 
+<a id="multilingual-support"></a>
 ## 🌐 Multilingual Support
 
 | Language | Code | Coverage | Script |
@@ -721,9 +739,11 @@ GeoShield combines **historical flood-landslide correlation** data for NER distr
 | Hindi | hi | ✅ 90+ keys | Devanagari |
 | Bengali | bn | ✅ 90+ keys | Bengali |
 | Assamese | as | ✅ 90+ keys | Bengali (Assamese) |
+| Odia | or | ✅ 90+ keys | Odia |
 
 ---
 
+<a id="quick-start"></a>
 ## 🚀 Quick Start
 
 ### Recommended presentation path (Windows)
@@ -770,6 +790,7 @@ public deployment.
 
 ---
 
+<a id="project-structure"></a>
 ## 📁 Project Structure
 
 ```
@@ -794,7 +815,7 @@ GeoShield/
 ├── backend/                               # ⚙️ Python FastAPI
 │   ├── app/
 │   │   ├── main.py                        # App entry + static files
-│   │   ├── models.py                      # 8 SQLAlchemy models
+│   │   ├── models.py                      # 11 SQLAlchemy models
 │   │   ├── database.py                    # SQLite connection
 │   │   ├── seed_data.py                   # Realistic NER seeder
 │   │   ├── ai_engine/
@@ -813,7 +834,9 @@ GeoShield/
 │   │       ├── alerts_timeline.py         # Timeline + history + trends
 │   │       ├── predict.py                 # Click-to-predict API
 │   │       ├── ml_enhanced.py             # Enhanced ML routes + risk grid
-│   │       └── export.py                  # GeoJSON/CSV export
+│   │       ├── integrations.py            # SRTM/Sentinel/IMD integration status
+│   │       ├── communications.py          # SMS/Web Push control plane
+│   │       └── users.py                   # Account and RBAC operations
 │   │   ├── schemas.py                     # Pydantic validation
 │   │   ├── middleware/
 │   │   │   └── rate_limiter.py            # Rate limiting (100/min)
@@ -821,7 +844,10 @@ GeoShield/
 │   │       ├── test_api.py                # API regression coverage
 │   │       ├── test_e2e.py                # End-to-end workflows
 │   │       ├── test_phase4_security.py    # Security/config regression coverage
-│   │       └── test_stabilization.py      # Post-Phase-4 consistency regressions
+│   │       ├── test_phase5_realtime.py    # Realtime alert workflows
+│   │       ├── test_phase7_integrations.py# Live/fallback provider integrations
+│   │       ├── test_phase8_communications.py # SMS/Web Push regression coverage
+│   │       └── test_stabilization.py      # Cross-phase consistency regressions
 │   └── uploads/                           # Photo uploads
 │
 ├── frontend/                              # 🖥️ React + TypeScript
@@ -863,6 +889,7 @@ GeoShield/
 
 ---
 
+<a id="security"></a>
 ## 🔒 Security
 
 | Feature | Implementation |
@@ -894,6 +921,7 @@ The offline launcher disables live weather and model retraining, uses the prepar
 
 ---
 
+<a id="tech-stack"></a>
 ## 🛠️ Tech Stack
 
 | Layer | Technology | Version | Purpose |
@@ -903,19 +931,21 @@ The offline launcher disables live weather and model retraining, uses the prepar
 | **Maps** | Leaflet.js | 1.9.4 | GIS visualization |
 | **Charts** | Recharts | 2.x | Data visualization |
 | **Icons** | Lucide React | Latest | UI icons |
-| **Backend** | Python FastAPI | 0.115 | REST API server |
-| **Database** | SQLite | 3.x | Data storage |
+| **Backend** | Python FastAPI | 0.141.x (current CI) | REST API server |
+| **Database** | PostgreSQL + SQLite | SQLAlchemy 2.x | Production/integration + local storage |
 | **AI/ML** | scikit-learn | 1.x | Risk prediction (RF+GB VotingClassifier) |
 | **Caching** | joblib | — | Model persistence across restarts |
-| **APIs** | Open-Meteo | Free | Optional current-weather lookup with demo fallback |
-| **Build** | Vite | 5.x | Frontend bundler |
+| **Live Data** | IMD, Open-Meteo, SRTM, Sentinel-2, GloFAS | Provider dependent | Weather, terrain, NDVI and flood-discharge context |
+| **Build** | Vite | 8.2.x | Frontend bundler |
 | **HTTP** | Axios | 1.x | API client |
-| **Mobile** | Capacitor | 6.x + Status Bar | Android wrapper, futuristic splash |
-| **Desktop** | Electron | 44.x | Windows/Linux, auto-starts backend |
-| **Testing** | pytest + TestClient + GitHub Actions | — | 105-test operational suite + audits/build/Docker/PostgreSQL CI |
+| **Communication** | WebSocket + Twilio + ntfy + VAPID Web Push | Multi-channel | District-aware realtime + out-of-band alert delivery |
+| **Mobile** | Capacitor | 8.5.x | Android + iOS wrappers |
+| **Desktop** | Electron | 44.x | Windows/Linux packaging with bundled backend runtime |
+| **Testing** | pytest + TestClient + Playwright + GitHub Actions | — | 128 backend tests + browser E2E + security/build/Docker/PostgreSQL/platform CI |
 
 ---
 
+<a id="results-impact"></a>
 ## 📈 Results & Impact
 
 ### Verified Prototype Scope
@@ -924,7 +954,7 @@ The offline launcher disables live weather and model retraining, uses the prepar
 |------|------------------------|
 | **Backend** | FastAPI application starts and the health, dashboard, and prediction flows respond |
 | **Frontend** | React 18 + TypeScript production build completes |
-| **Automated tests** | 105 backend test functions cover the stabilized baseline plus persistent auth, station provisioning, readiness, sensor ingestion, idempotency, and security regressions |
+| **Automated tests** | 128 backend tests cover stabilized APIs, auth/RBAC, station provisioning, sensor ingestion, persistence, external-data adapters, offline/realtime flows, and Phase 8 communications |
 | **Security checks** | `pip check`, root/frontend npm audits, TypeScript/Vite build, Docker build, and production-container API/login smoke checks pass in CI |
 | **Input modes** | Authenticated external sensor/gateway readings, optional seeded reference history, controlled simulation, and cached/live external-data adapters |
 | **ML status** | District-grouped prototype evaluation is reproducible; independent field validation remains future work |
@@ -940,12 +970,15 @@ claimed by the current prototype.
 
 ---
 
+<a id="test-results"></a>
 ## ✅ Test Results
 
-### Operational Regression Suite: 105 tests
+> **Latest verified main-branch CI:** GeoShield CI #193 — all 10 jobs passed. Release `v1.2.0` was published successfully across Android, Windows, Linux and iOS Simulator artifacts.
+
+### Operational Regression Suite: 128 tests
 
 ```
-Backend:   105-test operational regression suite
+Backend:   128-test operational regression suite
 Frontend:  TypeScript + Vite production build
 npm audit: root + frontend high-severity gates
 pip check: dependency consistency check
@@ -968,6 +1001,7 @@ Runtime:   dashboard + stations + prediction + persistent login + sensor-ingesti
 
 ---
 
+<a id="mobile-desktop-wrappers"></a>
 ## 📱 Mobile & Desktop Wrappers
 
 Web, Docker, Android, Windows Electron, Linux Electron and the generated iOS
@@ -1008,6 +1042,7 @@ system Python interpreter.
 
 ---
 
+<a id="future-roadmap"></a>
 ## 🗺️ Future Roadmap
 
 | Phase | Timeline | Features |
@@ -1023,6 +1058,7 @@ system Python interpreter.
 
 ---
 
+<a id="major-project-maintainer"></a>
 ## 👤 Major Project Maintainer
 
 **Yash Agarwal** — B.Tech ECE (EC-ACT), JIIT, Batch 2027
