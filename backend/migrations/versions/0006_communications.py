@@ -30,7 +30,7 @@ def upgrade() -> None:
     )
     op.create_index("ix_push_subscriptions_user_email", "push_subscriptions", ["user_email"])
     op.create_index("ix_push_subscriptions_district", "push_subscriptions", ["district"])
-    op.create_unique_constraint("uq_push_subscriptions_endpoint", "push_subscriptions", ["endpoint"])
+    op.create_index("ix_push_subscriptions_endpoint", "push_subscriptions", ["endpoint"], unique=True)
 
     op.create_table(
         "notification_deliveries",
@@ -57,7 +57,7 @@ def downgrade() -> None:
     op.drop_index("ix_notification_deliveries_alert_id", table_name="notification_deliveries")
     op.drop_table("notification_deliveries")
 
-    op.drop_constraint("uq_push_subscriptions_endpoint", "push_subscriptions", type_="unique")
+    op.drop_index("ix_push_subscriptions_endpoint", table_name="push_subscriptions")
     op.drop_index("ix_push_subscriptions_district", table_name="push_subscriptions")
     op.drop_index("ix_push_subscriptions_user_email", table_name="push_subscriptions")
     op.drop_table("push_subscriptions")
