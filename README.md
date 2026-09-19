@@ -161,7 +161,7 @@ Landslides in NER are caused by a complex interplay of **geological, meteorologi
 
 ### GeoShield — A Complete Monitoring Platform
 
-GeoShield is a **full-stack AI-powered landslide monitoring prototype** designed specifically for the North Eastern Region. It combines **seeded sensor scenarios**, **cached regional data**, **machine learning prediction**, and **multilingual warning workflows** into a single unified platform.
+GeoShield is a **full-stack AI-powered landslide monitoring prototype** designed specifically for the North Eastern Region. It combines **authenticated sensor/gateway ingestion**, **live and fallback-labelled geospatial/weather/flood sources**, **machine learning prediction**, **offline-capable field workflows**, and **multilingual warning delivery** in a single platform.
 
 ### 6 Core Capabilities
 
@@ -204,14 +204,14 @@ GeoShield is a **full-stack AI-powered landslide monitoring prototype** designed
 │                     (Python FastAPI)                             │
 │                                                                 │
 │  ┌──────────────────────────────────────────────────────────┐   │
-│  │                    REST API (17 Endpoints)                │   │
+│  │                    REST API (expanded capability surface)                │   │
 │  │                                                          │   │
 │  │  /api/dashboard/*    → Stats, heatmap, trends, states   │   │
 │  │  /api/sensors/*      → Stations, readings, history      │   │
 │  │  /api/alerts/*       → CRUD, acknowledge, resolve       │   │
 │  │  /api/reports/*      → Submit, list, verify             │   │
 │  │  /api/weather/*      → Current + forecast               │   │
-│  │  /api/satellite/*    → Cached data, summary, risk zones │   │
+│  │  /api/satellite/*    → Snapshot + live SRTM/Sentinel-2 data │   │
 │  │  /api/simulate/*     → Landslide simulation             │   │
 │  │                                                          │   │
 │  └──────────────────────────────────────────────────────────┘   │
@@ -321,7 +321,7 @@ GeoShield's prototype explores these problems by:
 
   1. Slope Angle     ██████████████████████████  25%
      Why: Steeper slopes have higher shear stress
-     Source: SRTM DEM / Open-Meteo elevation API
+     Source: live SRTM when available; cached regional fallback otherwise
 
   2. Daily Rainfall  ████████████████████        20%
      Why: Primary trigger for most NER landslides
@@ -337,7 +337,7 @@ GeoShield's prototype explores these problems by:
 
   5. NDVI Index      ███████████████             15%
      Why: Low vegetation = exposed soil = high risk
-     Source: Sentinel-2 satellite (estimated)
+     Source: live Sentinel-2 L2A when available; cached estimated fallback otherwise
 
   6. Elevation       ██████████                  10%
      Why: Higher elevations have more potential energy
