@@ -13,3 +13,5 @@ os.environ.setdefault("IMD_LIVE_ENABLED", "false")
 os.environ.setdefault("FLOOD_LIVE_ENABLED", "false")
 os.environ.setdefault("SMS_NOTIFICATIONS_ENABLED", "false")
 os.environ.setdefault("PUSH_NOTIFICATIONS_ENABLED", "false")
+
+os.environ.setdefault("WEB_PUSH_ENABLED", "false")
