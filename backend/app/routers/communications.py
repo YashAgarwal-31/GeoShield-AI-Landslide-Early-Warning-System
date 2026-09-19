@@ -19,6 +19,7 @@ from app.auth import get_current_user, require_role
 from app.database import get_db
 from app.models import NotificationDelivery, PushSubscription
 from app.services.notifications import notification_dispatcher
+from app.services.vapid import get_vapid_config
 
 
 router = APIRouter(prefix="/api/communications", tags=["communications"])
@@ -32,11 +33,7 @@ def _enabled(name: str, default: bool = False) -> bool:
 
 
 def _webpush_configured() -> bool:
-    return bool(
-        os.getenv("VAPID_PUBLIC_KEY")
-        and os.getenv("VAPID_PRIVATE_KEY")
-        and os.getenv("VAPID_SUBJECT")
-    )
+    return bool(get_vapid_config().get("configured"))
 
 
 class PushKeys(BaseModel):
@@ -103,9 +100,10 @@ def communication_status(
             "provider": "ntfy",
         },
         "web_push": {
-            "enabled": _enabled("WEB_PUSH_ENABLED", False),
+            "enabled": bool(get_vapid_config().get("enabled")),
             "configured": _webpush_configured(),
             "provider": "Web Push / VAPID",
+            "key_source": get_vapid_config().get("source"),
             "active_subscriptions": active_push,
         },
         "delivery_records": successful_24,
@@ -114,16 +112,16 @@ def communication_status(
 
 @router.get("/webpush/public-key")
 def webpush_public_key(user: dict = Depends(get_current_user)):
-    enabled = _enabled("WEB_PUSH_ENABLED", False)
-    public_key = os.getenv("VAPID_PUBLIC_KEY", "").strip()
-    if not enabled or not public_key:
+    config = get_vapid_config()
+    if not config.get("enabled") or not config.get("configured") or not config.get("public_key"):
         raise HTTPException(
             status_code=503,
             detail="Web Push is not configured on this GeoShield server.",
         )
     return {
-        "public_key": public_key,
+        "public_key": config["public_key"],
         "provider": "Web Push / VAPID",
+        "key_source": config["source"],
     }
 
 
