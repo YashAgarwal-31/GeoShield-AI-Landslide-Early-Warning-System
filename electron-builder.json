@@ -65,7 +65,16 @@
     "category": "Science;Education",
     "description": "AI-Based Early Warning & Landslide Risk Monitoring System",
     "maintainer": "Team GeoShield <team@geoshield.dev>",
-    "synopsis": "Landslide Monitoring for North Eastern India"
+    "synopsis": "Landslide Monitoring for North Eastern India",
+    "extraResources": [
+      {
+        "from": "runtime/python",
+        "to": "runtime/python",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ]
   },
   "win": {
     "target": [
