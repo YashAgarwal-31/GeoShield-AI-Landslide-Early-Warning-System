@@ -1,8 +1,9 @@
 """Resilient weather and satellite-snapshot adapters.
 
-Live weather access is opt-in through ``WEATHER_LIVE_ENABLED=true`` so the
-default demo remains deterministic and works offline. Every result carries
-machine-readable source and freshness metadata.
+Live weather is enabled by default and can be disabled explicitly with
+``WEATHER_LIVE_ENABLED=false`` for a fully deterministic offline demo. Every
+result carries machine-readable source and freshness metadata, and upstream
+failures are converted into an offline fallback instead of an API error.
 """
 
 from __future__ import annotations
@@ -102,7 +103,7 @@ class OpenMeteoWeatherAdapter:
         client: Any | None = None,
     ) -> None:
         self.enabled = enabled if enabled is not None else os.getenv(
-            "WEATHER_LIVE_ENABLED", "false"
+            "WEATHER_LIVE_ENABLED", "true"
         ).lower() in {"1", "true", "yes", "on"}
         self.timeout_seconds = timeout_seconds or float(
             os.getenv("WEATHER_REQUEST_TIMEOUT_SECONDS", "5")
@@ -148,7 +149,12 @@ class OpenMeteoWeatherAdapter:
             with self._lock:
                 self._cache[station_id] = (now, result)
             return result, None
-        except (httpx.HTTPError, KeyError, TypeError, ValueError) as exc:
+        # A live data source must never make the operational API unavailable.
+        # Besides HTTP/protocol errors, client construction itself can fail
+        # (for example, a configured SOCKS proxy without its optional runtime
+        # dependency). Convert every ordinary adapter failure to provenance-
+        # labelled fallback data; process-control exceptions still propagate.
+        except Exception as exc:
             reason = f"live_fetch_failed:{exc.__class__.__name__}"
             if cached:
                 stale = cached[1]

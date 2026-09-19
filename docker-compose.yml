@@ -9,7 +9,7 @@ services:
     environment:
       APP_ENV: demo
       DATABASE_URL: sqlite:////app/data/geoshield.db
-      WEATHER_LIVE_ENABLED: "false"
+      WEATHER_LIVE_ENABLED: "true"
       MODEL_TRAINING_ENABLED: "false"
       TRUST_PROXY_HEADERS: "false"
       ENABLE_DEMO_USERS: "true"

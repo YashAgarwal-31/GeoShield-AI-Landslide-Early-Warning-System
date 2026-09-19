@@ -55,6 +55,7 @@ not field accuracy and must always be presented with this limitation.
 
 Weather and satellite API responses now include a shared source object containing
 mode, provider, observation time, served time, age, freshness threshold, stale
-state, and fallback reason. Optional live weather is disabled by default; seeded
-weather is always labeled `fallback`. The repository satellite file is always
+state, and fallback reason. Live weather is enabled by default with a bounded
+timeout; seeded weather is always labeled `fallback` when live retrieval is
+disabled or unavailable. The repository satellite file is always
 labeled `cached`, and its age is calculated from the embedded timestamps.

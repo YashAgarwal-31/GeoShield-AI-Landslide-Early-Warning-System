@@ -22,17 +22,20 @@ Each response includes:
 
 ## Weather behavior
 
-The default is offline-safe: `WEATHER_LIVE_ENABLED=false`. Weather endpoints
-serve seeded demonstration rows with `mode=fallback`, making their status
-unambiguous.
+Live Open-Meteo weather is enabled by default. Weather endpoints use a bounded
+timeout and automatically serve seeded demonstration rows with `mode=fallback`
+when the network/provider is unavailable, making degraded status unambiguous.
 
-To enable optional current model-derived weather:
+To configure current model-derived weather explicitly:
 
 ```bash
 export WEATHER_LIVE_ENABLED=true
 export WEATHER_REQUEST_TIMEOUT_SECONDS=5
 export WEATHER_CACHE_TTL_SECONDS=900
 ```
+
+For a deterministic offline-only run, set `WEATHER_LIVE_ENABLED=false` or use
+`start-offline.bat`.
 
 The Open-Meteo adapter uses a bounded timeout and a successful-response cache.
 If the provider fails after a prior success, the stale cached result is returned

@@ -23,8 +23,9 @@ Linux/macOS after installing dependencies and building the frontend:
 ./start.sh
 ```
 
-The local launchers default to localhost and keep live weather/model retraining
-off for deterministic demonstrations.
+The normal local launcher binds to localhost, enables keyless live weather with
+automatic fallback, and keeps model retraining off. `start-offline.bat` disables
+live weather for a deterministic no-network demonstration.
 
 ## 2. Docker
 
@@ -75,7 +76,7 @@ JWT_SECRET=<32+ random characters>
 ENABLE_DEMO_USERS=false
 GEOSHIELD_ADMIN_EMAIL=<your admin email>
 GEOSHIELD_ADMIN_PASSWORD=<12+ character secret>
-WEATHER_LIVE_ENABLED=false
+WEATHER_LIVE_ENABLED=true
 MODEL_TRAINING_ENABLED=false
 TRUST_PROXY_HEADERS=true
 ```

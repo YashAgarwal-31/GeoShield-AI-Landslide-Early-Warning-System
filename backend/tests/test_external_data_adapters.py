@@ -80,6 +80,11 @@ class _FakeClient:
         return _FakeResponse()
 
 
+class _BrokenClient:
+    def get(self, *_args, **_kwargs):
+        raise ImportError("optional proxy transport is unavailable")
+
+
 def test_live_weather_adapter_caches_successful_response():
     client = _FakeClient()
     adapter = OpenMeteoWeatherAdapter(
@@ -98,3 +103,12 @@ def test_live_weather_adapter_caches_successful_response():
     assert live.data["rainfall_24h"] == 2
     assert len(live.forecast) == 2
     assert client.calls == 1
+
+
+def test_live_weather_adapter_converts_runtime_failure_to_fallback_reason():
+    adapter = OpenMeteoWeatherAdapter(enabled=True, client=_BrokenClient())
+
+    result, reason = adapter.get("NER-001", 27.3, 88.6, forecast_hours=2)
+
+    assert result is None
+    assert reason == "live_fetch_failed:ImportError"

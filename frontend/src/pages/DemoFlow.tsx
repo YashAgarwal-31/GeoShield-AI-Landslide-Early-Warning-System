@@ -291,7 +291,7 @@ export default function DemoFlow() {
             { layer: t('techAuth'), tech: 'JWT + bcrypt + RBAC' },
             { layer: t('languagesLabel'), tech: '4 languages (EN/HI/BN/AS)' },
             { layer: t('techDatabase'), tech: 'PostgreSQL / SQLite + Alembic' },
-            { layer: t('techSatellite'), tech: 'Cached satellite snapshot + optional live weather' },
+            { layer: t('techSatellite'), tech: 'Cached satellite snapshot + live weather with safe fallback' },
           ].map((item, i) => (
             <div key={i} className="p-3 bg-dark-800/50 rounded-lg">
               <p className="text-xs text-green-400 font-medium">{item.layer}</p>

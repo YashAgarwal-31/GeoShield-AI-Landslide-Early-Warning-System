@@ -984,7 +984,7 @@ platform-specific Python runtime. For a fully repeatable academic demo, prefer
 |-------|----------|----------|
 | **Phase 1** | ✅ Done | Baseline audit, dependency correction, risk-guidance consistency fix, provenance policy, verified backend/frontend baseline |
 | **Phase 2** | ✅ Done | Dataset audit, provenance manifest, checksum-bound report, district-grouped ML evaluation, imbalance-aware metrics, regression tests |
-| **Phase 3** | ✅ Done | Optional live weather adapter, timeout and TTL cache, seeded fallback, satellite snapshot reload, timestamps, freshness, source badges, regression tests |
+| **Phase 3** | ✅ Done | Default live weather adapter, timeout and TTL cache, seeded fallback, satellite snapshot reload, timestamps, freshness, source badges, regression tests |
 | **Phase 4** | ✅ Done | Production-safe configuration, restricted privileged operations, hardened Docker/Render deployment, CI verification, repeatable offline demo scripts, and presentation/viva guide |
 
 ---

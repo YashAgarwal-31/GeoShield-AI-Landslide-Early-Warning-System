@@ -134,7 +134,7 @@ Important variables are documented in `.env.example`.
 | `GEOSHIELD_ADMIN_EMAIL` | Secret-managed production admin login |
 | `GEOSHIELD_ADMIN_PASSWORD` | Production admin password; >=12 chars |
 | `DATABASE_URL` | SQLite by default; can point to another SQLAlchemy DB |
-| `WEATHER_LIVE_ENABLED` | Optional live weather adapter |
+| `WEATHER_LIVE_ENABLED` | Keyless live weather adapter (default `true`; safe fallback) |
 | `MODEL_TRAINING_ENABLED` | Explicit admin maintenance switch |
 | `TRUST_PROXY_HEADERS` | Trust forwarded client IP only behind a trusted proxy |
 | `MODEL_CACHE_DIR` | Writable model cache location for packaged runtimes |

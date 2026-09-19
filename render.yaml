@@ -16,7 +16,7 @@ services:
       - key: GEOSHIELD_ADMIN_PASSWORD
         sync: false
       - key: WEATHER_LIVE_ENABLED
-        value: "false"
+        value: "true"
       - key: MODEL_TRAINING_ENABLED
         value: "false"
       - key: ALLOW_SYNTHETIC_MODEL_FALLBACK
