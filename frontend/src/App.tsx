@@ -492,6 +492,18 @@ function MainLayout() {
           if (['alert.created', 'alert.updated', 'alerts.reset'].includes(message.type)) {
             refreshAlertCount();
           }
+          if (
+            message.type === 'alert.created' &&
+            typeof Notification !== 'undefined' &&
+            Notification.permission === 'granted' &&
+            message.alert
+          ) {
+            new Notification(message.alert.title || 'GeoShield Alert', {
+              body: message.alert.message || 'New early-warning alert received.',
+              icon: '/geoshield_logo.svg',
+              tag: `geoshield-alert-${message.alert.id || Date.now()}`,
+            });
+          }
         } catch { /* ignore malformed non-operational frames */ }
       };
       socket.onerror = () => socket?.close();
@@ -516,6 +528,15 @@ function MainLayout() {
   const handleLangChange = (newLang: Language) => {
     setLangState(newLang);
     setLanguage(newLang);
+  };
+
+  const enableBrowserNotifications = async () => {
+    if (typeof Notification === 'undefined') return;
+    try {
+      await Notification.requestPermission();
+    } catch {
+      // Browser policy can block the permission prompt; WebSocket alerts still work.
+    }
   };
 
   const canRunScenario =
@@ -666,6 +687,12 @@ function MainLayout() {
                   )
                 )}
               </div>
+               <button
+                 onClick={enableBrowserNotifications}
+                 className="w-full text-[11px] px-2 py-1.5 rounded-lg bg-amber-600/10 text-amber-300 border border-amber-600/30 hover:bg-amber-600/20"
+               >
+                 Enable Push Alerts
+               </button>
                <div className="space-y-2">
                  <label className="text-[10px] text-dark-500 font-medium">Backend URL</label>
                  <div className="flex gap-1">
