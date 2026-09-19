@@ -7,7 +7,7 @@ secrets.
 from __future__ import annotations
 
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -154,7 +154,7 @@ def subscribe_webpush(
         subscription.auth = payload.keys.auth
         subscription.district = district
         subscription.is_active = True
-        subscription.updated_at = datetime.utcnow()
+        subscription.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
     db.commit()
     db.refresh(subscription)
     return {
@@ -182,7 +182,7 @@ def unsubscribe_webpush(
     if subscription is None:
         return {"status": "not_found"}
     subscription.is_active = False
-    subscription.updated_at = datetime.utcnow()
+    subscription.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
     db.commit()
     return {"status": "unsubscribed"}
 
