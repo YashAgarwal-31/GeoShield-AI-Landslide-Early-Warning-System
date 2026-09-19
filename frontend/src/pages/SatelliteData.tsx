@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { getSatelliteSummary, getSatelliteData, getSatelliteRiskZones, SatelliteSummary, SatelliteStation, SatelliteRiskZone, DataSourceMetadata } from '../services/api';
+import { getSatelliteSummary, getSatelliteData, getSatelliteRiskZones, getLiveSatelliteData, SatelliteSummary, SatelliteStation, SatelliteRiskZone, DataSourceMetadata, LiveSatelliteResponse } from '../services/api';
 import DataSourceBadge from '../components/DataSourceBadge';
 import { t } from '../i18n/translations';
 import {
@@ -20,6 +20,8 @@ export default function SatelliteData() {
   const [riskZones, setRiskZones] = useState<SatelliteRiskZone[]>([]);
   const [source, setSource] = useState<DataSourceMetadata | null>(null);
   const [loading, setLoading] = useState(true);
+  const [liveLoading, setLiveLoading] = useState<string | null>(null);
+  const [liveResults, setLiveResults] = useState<Record<string, LiveSatelliteResponse>>({});
   const [activeTab, setActiveTab] = useState<'summary' | 'stations' | 'risk-zones'>('summary');
 
   useEffect(() => {
@@ -42,6 +44,18 @@ export default function SatelliteData() {
       console.error('Satellite data fetch error:', e);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchLiveRemoteSensing = async (stationId: string) => {
+    setLiveLoading(stationId);
+    try {
+      const response = await getLiveSatelliteData(stationId);
+      setLiveResults((previous) => ({ ...previous, [stationId]: response.data }));
+    } catch (error) {
+      console.error('Live remote sensing fetch error:', error);
+    } finally {
+      setLiveLoading(null);
     }
   };
 
@@ -233,6 +247,26 @@ export default function SatelliteData() {
                       <span className="text-[9px] text-dark-400 font-medium">{riskScore.toFixed(1)}/100</span>
                     </div>
                   </div>
+
+                  <button
+                    onClick={() => fetchLiveRemoteSensing(station.id)}
+                    disabled={liveLoading === station.id}
+                    className="mt-3 w-full rounded-lg border border-blue-600/30 bg-blue-600/10 px-3 py-2 text-[11px] font-medium text-blue-300 hover:bg-blue-600/20 disabled:opacity-50"
+                  >
+                    {liveLoading === station.id ? 'Fetching Sentinel-2 + SRTM…' : 'Refresh Live Remote Sensing'}
+                  </button>
+                  {liveResults[station.id] && (
+                    <div className="mt-2 rounded-lg border border-dark-700 bg-dark-900/60 p-2 text-[10px] text-dark-300">
+                      <div className="grid grid-cols-3 gap-2">
+                        <span>SRTM elev: {liveResults[station.id].live.elevation ?? 'fallback'} m</span>
+                        <span>SRTM slope: {liveResults[station.id].live.slope ?? 'fallback'}°</span>
+                        <span>Sentinel NDVI: {liveResults[station.id].live.ndvi ?? 'fallback'}</span>
+                      </div>
+                      <p className="mt-1 text-dark-500">
+                        SRTM: {liveResults[station.id].sources.srtm.mode} · Sentinel-2: {liveResults[station.id].sources.sentinel2.mode}
+                      </p>
+                    </div>
+                  )}
                 </div>
               );
             })}
