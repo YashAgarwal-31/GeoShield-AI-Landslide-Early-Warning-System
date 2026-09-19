@@ -17,6 +17,7 @@ if config.config_file_name is not None:
 from app.models import (
     SensorStation, SensorReading, RiskAssessment, Alert,
     CitizenReport, WeatherData, RoadStatus, Village,
+    PushSubscription, NotificationDelivery,
 )
 from app.database import Base
 
