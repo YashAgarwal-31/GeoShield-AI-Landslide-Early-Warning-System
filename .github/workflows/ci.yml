@@ -999,10 +999,6 @@ jobs:
       SENTINEL2_LIVE_ENABLED: "false"
       IMD_LIVE_ENABLED: "false"
       FLOOD_LIVE_ENABLED: "false"
-      SRTM_LIVE_ENABLED: "false"
-      SENTINEL2_LIVE_ENABLED: "false"
-      IMD_LIVE_ENABLED: "false"
-      FLOOD_LIVE_ENABLED: "false"
       MODEL_TRAINING_ENABLED: "false"
     steps:
       - name: Checkout
