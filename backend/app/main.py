@@ -51,7 +51,7 @@ def _cors_origins() -> list[str]:
 
 
 from app.database import engine, Base, SessionLocal
-from app.routers import sensors, dashboard, alerts, reports, weather, simulator, satellite, predict, alerts_timeline, flood, ml_enhanced, users, integrations
+from app.routers import sensors, dashboard, alerts, reports, weather, simulator, satellite, predict, alerts_timeline, flood, ml_enhanced, users, integrations, communications
 from app.auth import authenticate_user, create_token, ensure_bootstrap_admin, resolve_token_user
 from app.realtime import alert_manager
 from app.database import get_db
@@ -184,6 +184,7 @@ app.include_router(flood.router)
 app.include_router(ml_enhanced.router)
 app.include_router(users.router)
 app.include_router(integrations.router)
+app.include_router(communications.router)
 
 
 @app.get("/health", response_class=JSONResponse)
