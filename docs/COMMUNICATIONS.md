@@ -41,7 +41,7 @@ cd backend
 python ../tools/generate_vapid_keys.py
 ```
 
-Copy the generated values into your local/deployment secret environment and set
+Copy the generated Base64URL public/private values into your local/deployment secret environment and set
 a real contact address in `VAPID_SUBJECT`. Do not commit the private key.
 
 After login, use **Enable Emergency Push** in GeoShield settings. The browser
