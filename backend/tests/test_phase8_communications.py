@@ -6,6 +6,7 @@ from fastapi.testclient import TestClient
 from app.auth import create_token
 from app.main import app
 from app.services.notifications import NotificationDispatcher
+from app.services.vapid import get_vapid_config
 
 
 client = TestClient(app)
@@ -103,3 +104,27 @@ def test_push_dispatch_disabled_is_nonfatal(monkeypatch):
     )
     assert result["enabled"] is False
     assert result["sent"] == 0
+
+
+def test_demo_webpush_auto_generates_valid_vapid_pair(monkeypatch, tmp_path):
+    monkeypatch.setenv("APP_ENV", "demo")
+    monkeypatch.setenv("WEB_PUSH_ENABLED", "true")
+    monkeypatch.setenv("VAPID_KEY_FILE", str(tmp_path / "vapid.json"))
+    monkeypatch.delenv("VAPID_PUBLIC_KEY", raising=False)
+    monkeypatch.delenv("VAPID_PRIVATE_KEY", raising=False)
+    monkeypatch.delenv("VAPID_SUBJECT", raising=False)
+
+    config = get_vapid_config()
+    assert config["enabled"] is True
+    assert config["configured"] is True
+    assert config["source"] == "generated_local"
+    assert len(config["public_key"]) >= 80
+    assert len(config["private_key"]) >= 40
+
+    from py_vapid import Vapid
+    vapid = Vapid.from_string(config["private_key"])
+    assert vapid.public_key is not None
+
+    again = get_vapid_config()
+    assert again["public_key"] == config["public_key"]
+    assert again["private_key"] == config["private_key"]
