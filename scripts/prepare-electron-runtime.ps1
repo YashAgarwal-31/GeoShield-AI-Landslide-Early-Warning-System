@@ -39,6 +39,12 @@ $pythonExe = Join-Path $outputPath "python.exe"
 & $pythonExe $getPip --no-warn-script-location
 if ($LASTEXITCODE -ne 0) { throw "pip bootstrap failed." }
 
+# Embedded Python ships without the normal build tooling. Some pure-Python
+# dependencies (for example Web Push HTTP-ECE) publish source distributions on
+# Windows and require setuptools.build_meta while pip prepares a wheel.
+& $pythonExe -m pip install --no-warn-script-location --disable-pip-version-check --upgrade pip setuptools wheel
+if ($LASTEXITCODE -ne 0) { throw "Python build-tool bootstrap failed." }
+
 $requirements = Join-Path $repoRoot "backend/requirements.txt"
 & $pythonExe -m pip install --no-warn-script-location --disable-pip-version-check -r $requirements
 if ($LASTEXITCODE -ne 0) { throw "Backend dependency installation failed." }
@@ -46,7 +52,7 @@ if ($LASTEXITCODE -ne 0) { throw "Backend dependency installation failed." }
 & $pythonExe -m pip check
 if ($LASTEXITCODE -ne 0) { throw "Bundled Python dependency validation failed." }
 
-& $pythonExe -c "import fastapi, uvicorn, sqlalchemy, sklearn, xgboost, psycopg; print('GeoShield bundled Python runtime OK')"
+& $pythonExe -c "import fastapi, uvicorn, sqlalchemy, sklearn, xgboost, psycopg, pywebpush; print('GeoShield bundled Python runtime OK')"
 if ($LASTEXITCODE -ne 0) { throw "Bundled runtime import verification failed." }
 
 Remove-Item -Recurse -Force $tempRoot
