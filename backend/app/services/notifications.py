@@ -20,6 +20,7 @@ import httpx
 
 from app.database import SessionLocal
 from app.models import NotificationDelivery, PushSubscription
+from app.services.vapid import get_vapid_config
 
 
 def _env_bool(name: str, default: bool = False) -> bool:
@@ -226,11 +227,13 @@ class NotificationDispatcher:
 
     @staticmethod
     def _webpush_config() -> tuple[bool, str, str, str]:
-        enabled = _env_bool("WEB_PUSH_ENABLED", False)
-        public_key = os.getenv("VAPID_PUBLIC_KEY", "").strip()
-        private_key = os.getenv("VAPID_PRIVATE_KEY", "").strip()
-        subject = os.getenv("VAPID_SUBJECT", "mailto:admin@geoshield.local").strip()
-        return enabled, public_key, private_key, subject
+        config = get_vapid_config()
+        return (
+            bool(config["enabled"]),
+            str(config["public_key"]),
+            str(config["private_key"]),
+            str(config["subject"]),
+        )
 
     async def send_web_push(self, alert: dict[str, Any]) -> dict[str, Any]:
         enabled, public_key, private_key, subject = self._webpush_config()
