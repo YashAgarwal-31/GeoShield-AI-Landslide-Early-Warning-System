@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { getFloodData, getFloodSummary, getFloodCorrelation, FloodDistrict, FloodSummary, FloodLandslideCorrelation } from '../services/api';
+import { getFloodData, getFloodSummary, getFloodCorrelation, FloodDistrict, FloodSummary, FloodLandslideCorrelation, DataSourceMetadata } from '../services/api';
 import { t } from '../i18n/translations';
+import DataSourceBadge from '../components/DataSourceBadge';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   ScatterChart, Scatter, Cell, Legend, Line, LineChart, AreaChart, Area,
@@ -18,6 +19,7 @@ export default function FloodData() {
   const [data, setData] = useState<FloodDistrict[]>([]);
   const [summary, setSummary] = useState<FloodSummary | null>(null);
   const [correlation, setCorrelation] = useState<FloodLandslideCorrelation[]>([]);
+  const [liveSource, setLiveSource] = useState<DataSourceMetadata | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -29,6 +31,7 @@ export default function FloodData() {
           getFloodCorrelation(),
         ]);
         setData(floodRes.data.data || []);
+        setLiveSource(floodRes.data.live_source || null);
         setSummary(summaryRes.data);
         setCorrelation(corrRes.data.correlation);
       } catch (e) {
@@ -58,6 +61,8 @@ export default function FloodData() {
         </h1>
         <p className="text-dark-400 text-sm mt-1">{t('floodLandslideCompoundAnalysis')}</p>
       </div>
+
+      {liveSource && <DataSourceBadge source={liveSource} />}
 
       {/* Summary Cards */}
       {summary && (
@@ -148,6 +153,7 @@ export default function FloodData() {
                 <th className="text-left py-2 px-3 font-medium">{t('floodRisk')}</th>
                 <th className="text-left py-2 px-3 font-medium">{t('annualFloodDays')}</th>
                 <th className="text-left py-2 px-3 font-medium">{t('historicalEventsLabel')}</th>
+                <th className="text-left py-2 px-3 font-medium">Live discharge</th>
                 <th className="text-left py-2 px-3 font-medium">{t('riverSystems')}</th>
               </tr>
             </thead>
@@ -165,6 +171,11 @@ export default function FloodData() {
                   </td>
                   <td className="py-2 px-3 text-cyan-400">{d.annual_flood_days}</td>
                   <td className="py-2 px-3 text-orange-400">{d.historical_events}</td>
+                  <td className="py-2 px-3 text-blue-300 text-xs">
+                    {d.live_discharge?.river_discharge_today != null
+                      ? `${d.live_discharge.river_discharge_today} ${d.live_discharge.river_discharge_unit}`
+                      : 'Fallback'}
+                  </td>
                   <td className="py-2 px-3 text-dark-300 text-xs">{d.river_systems.join(', ')}</td>
                 </tr>
               ))}
