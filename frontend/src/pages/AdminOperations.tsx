@@ -30,7 +30,7 @@ import {
   Users,
   Bell,
   Send,
-  MessageSquareText,
+  MessageSquare,
 } from 'lucide-react';
 
 type Message = { kind: 'success' | 'error'; text: string } | null;
@@ -331,7 +331,7 @@ export default function AdminOperations() {
               onClick={() => testCommunication('sms')}
               className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-green-600/30 bg-green-600/10 text-green-300 text-xs hover:bg-green-600/20 disabled:opacity-50"
             >
-              <MessageSquareText className="w-3.5 h-3.5" />
+              <MessageSquare className="w-3.5 h-3.5" />
               {testingChannel === 'sms' ? 'Testing SMS…' : 'Test SMS'}
             </button>
             <button
