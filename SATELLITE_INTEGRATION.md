@@ -5,11 +5,12 @@
 This guide describes future work required to replace generated/estimated fields
 with independently sourced USGS SRTM and Copernicus Sentinel-2 products.
 
-> **Current status:** these products are not integrated into the default build.
-> The application currently serves an Open-Meteo-derived cached station snapshot
-> whose NDVI values are estimated. Phase 3 exposes its observation timestamp,
-> age, and stale status instead of presenting it as a live feed. See
-> [`docs/DATA_SOURCE_ADAPTERS.md`](docs/DATA_SOURCE_ADAPTERS.md).
+> **Current status (v1.1):** GeoShield now has on-demand live remote-sensing
+> adapters. SRTM elevation/slope is sampled from public AWS Open Data Skadi HGT
+> tiles, and recent Sentinel-2 L2A NDVI is computed from red/NIR Cloud-Optimized
+> GeoTIFF assets discovered through Element 84 Earth Search. The repository
+> snapshot remains a deterministic fallback when an upstream is unavailable.
+> Every response exposes provider, mode, observation age, and fallback reason.
 
 ---
 
@@ -31,7 +32,7 @@ with independently sourced USGS SRTM and Copernicus Sentinel-2 products.
 
 ---
 
-## Step 2: Download SRTM DEM
+## Optional bulk workflow: Download SRTM DEM
 
 ### What is SRTM DEM?
 - **30-meter resolution** elevation data for the entire Earth
@@ -81,7 +82,7 @@ with rasterio.open('srtm_ner_tile1.tif') as src:
 
 ---
 
-## Step 3: Download Sentinel-2 NDVI
+## Optional bulk workflow: Download Sentinel-2 NDVI
 
 ### What is NDVI?
 - **Normalized Difference Vegetation Index** — ranges from -1 to 1
@@ -155,9 +156,9 @@ for station in stations:
 
 | Data Source | Current (Simulated) | After Integration | Improvement |
 |-------------|---------------------|-------------------|-------------|
-| Slope Angle | Random ±5° from base | Real from SRTM DEM | **HIGH** |
-| Elevation | Random ±50m from base | Real from SRTM DEM | **HIGH** |
-| Vegetation (NDVI) | Formula-based | Real from Sentinel-2 | **HIGH** |
+| Slope Angle | Cached/generated fallback | Live SRTM point sampling | **LIVE INTEGRATED** |
+| Elevation | Cached regional fallback | Live SRTM point sampling | **LIVE INTEGRATED** |
+| Vegetation (NDVI) | Cached estimated fallback | Recent Sentinel-2 L2A point NDVI | **LIVE INTEGRATED** |
 | Training Data | Mixed regional/generated prototype rows | Independently sourced and versioned terrain features | **HIGH** |
 
 ---
