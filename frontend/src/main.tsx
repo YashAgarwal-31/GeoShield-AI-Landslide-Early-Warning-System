@@ -19,6 +19,15 @@ async function initCapacitor() {
 
 initCapacitor();
 
+// Browser/PWA shell cache. Capacitor already bundles the web assets locally,
+// while the API layer provides cached data + queued field reports offline.
+if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => undefined);
+  });
+}
+
+
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <ErrorBoundary>
