@@ -218,7 +218,10 @@ preparation.
 
 ## ACT emergency communication setup
 
-Generate a Web Push VAPID key pair locally:
+Demo/development mode auto-generates a persistent local VAPID keypair on first
+use, making browser Web Push immediately testable on localhost.
+
+For production, generate a Web Push VAPID key pair locally:
 
 ```bash
 cd backend
