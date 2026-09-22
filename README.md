@@ -16,7 +16,7 @@
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.141.x-009688?style=for-the-badge&logo=fastapi&logoColor=white)
 ![AI/ML](https://img.shields.io/badge/AI%2FML-RF%2BGB_Ensemble-orange?style=for-the-badge)
 
-**Verified v1.2.0 build with persistent data, authenticated gateway ingestion, ML inference, GIS monitoring, live/fallback environmental integrations, district-aware emergency communications, offline-capable field workflows, and multi-platform packaging.**
+**v1.2.0 academic prototype with persistent data, authenticated gateway ingestion, ML inference, GIS monitoring, live/fallback environmental adapters, district-aware emergency communications, a repeatable offline presentation mode, and multi-platform packaging.**
 
 **Current verified release:** `v1.2.0` adds the ACT emergency-communications layer on top of the v1.0 academic freeze baseline. See [docs/COMMUNICATIONS.md](docs/COMMUNICATIONS.md) for SMS/Web Push architecture and [docs/FINAL_PROJECT_FREEZE.md](docs/FINAL_PROJECT_FREEZE.md) for the original freeze policy.
 
@@ -171,7 +171,7 @@ Landslides in NER are caused by a complex interplay of **geological, meteorologi
 
 ### GeoShield — A Complete Monitoring Platform
 
-GeoShield is a **full-stack AI-powered landslide monitoring prototype** designed specifically for the North Eastern Region. It combines **authenticated sensor/gateway ingestion**, **live and fallback-labelled geospatial/weather/flood sources**, **machine learning prediction**, **offline-capable field workflows**, and **multilingual warning delivery** in a single platform.
+GeoShield is a **full-stack AI-powered landslide monitoring prototype** designed specifically for the North Eastern Region. It combines **authenticated sensor/gateway ingestion**, **live and fallback-labelled geospatial/weather/flood sources**, **machine learning prediction**, a **repeatable cached-data offline demonstration**, and **multilingual warning delivery** in a single platform.
 
 ### 6 Core Capabilities
 
@@ -919,6 +919,12 @@ start-offline.bat
 
 The offline launcher disables live weather and model retraining, uses the prepared frontend/cached data, and binds FastAPI only to `127.0.0.1:8000`.
 
+Offline mode covers the prepared UI, local API/database, seeded reference data,
+cached satellite snapshot and simulator. Live environmental providers, external
+gateway traffic, Twilio SMS and ntfy delivery still require network access and
+their corresponding configuration. The service worker caches the application
+shell; API responses are not presented as a fully offline operational network.
+
 ---
 
 <a id="tech-stack"></a>
@@ -973,7 +979,10 @@ claimed by the current prototype.
 <a id="test-results"></a>
 ## ✅ Test Results
 
-> **Latest verified main-branch CI:** GeoShield CI #193 — all 10 jobs passed. Release `v1.2.0` was published successfully across Android, Windows, Linux and iOS Simulator artifacts.
+> **Verification command:** `cd backend && python -m pytest tests -q`. The suite
+> currently defines 128 backend tests. Treat this section as verified only when
+> that command and the linked main-branch GitHub Actions workflow are green for
+> the commit being presented.
 
 ### Operational Regression Suite: 128 tests
 

@@ -91,7 +91,7 @@
 | **Performance on tabular data** | Often worse | State-of-the-art on structured data |
 | **Maintenance** | Complex retraining pipeline | Simple joblib caching |
 
-For **tabular sensor data** (9 numerical features), ensemble tree methods are proven to outperform deep learning. Research shows Gradient Boosting and Random Forest consistently win Kaggle tabular competitions. Our RF+GB ensemble achieves **95.2% test accuracy and 94.6% F1** without any deep learning overhead.
+For **tabular sensor data** (9 numerical features), tree ensembles are a practical, interpretable baseline and need much less compute than a deep neural network. GeoShield uses RF+GB for runtime risk scoring. A separate district-grouped Random Forest evaluation is reproducible, but its generated/derived labels mean the result is **prototype validation, not field accuracy**.
 
 ---
 
@@ -172,10 +172,10 @@ BUSINESS LOGIC (Python FastAPI + JWT Auth + RBAC)
 DATA (SQLite + Open-Meteo API + NASA GLC + seed data)
 ```
 
-- **Frontend:** React SPA with 9 pages, role-based routing, i18n for 4 languages
+- **Frontend:** React SPA with role-based routing and i18n for 5 languages
 - **Backend:** FastAPI with 11 routers, JWT auth, rate limiting (100 req/min), WebSocket for real-time alerts
-- **AI Engine:** VotingClassifier ensemble (RF 40% + GB 60%) trained on 12,000 NER samples
-- **Data Layer:** SQLite with 8 SQLAlchemy models, Alembic migrations, auto-seeded with 20 real NER stations
+- **AI Engine:** VotingClassifier ensemble (RF 40% + GB 60%) trained on 12,000 mixed-provenance prototype samples
+- **Data Layer:** SQLite/PostgreSQL via SQLAlchemy and Alembic, auto-seeded with 20 reference NER station locations for demonstration
 
 ---
 
@@ -258,7 +258,7 @@ This reduces dashboard load time from ~500ms to ~50ms.
 
 **Why Soft Voting:** Averages probability outputs from both models, giving more nuanced risk scores than hard voting.
 
-**Why GB weighted higher (0.6):** Gradient Boosting typically achieves higher accuracy on our dataset, so it gets more influence.
+**Why GB weighted higher (0.6):** This is a prototype design choice based on development experiments. The weight has not been independently optimized or field-validated, so it should not be presented as a proven operational optimum.
 
 ---
 
@@ -300,32 +300,28 @@ This gives us a **physically meaningful 4-class target** rather than an arbitrar
 
 ---
 
-### Q4.4: What is the model accuracy and how was it validated?
+### Q4.4: How was the model evaluated?
 
 **A:**
 
-| Metric | Value |
-|--------|-------|
-| Training accuracy | 99.98% |
-| Test accuracy (20% holdout) | 95.2% |
-| F1 Score (weighted) | 94.6% |
-| F1 Score (macro) | 58.6% |
-| Training samples | 12,000 NER terrain samples |
-| Features | 9 input features |
-| Classes | 4 (low, moderate, high, critical) |
-| Random Forest alone | 88.8% |
-| Gradient Boosting alone | 95.3% |
-| Ensemble (RF+GB) | 95.2% |
+The reproducible evaluation in `datasets/evaluate_model.py` uses the binary
+`landslide` label, groups splits by district to prevent district overlap and
+compares a Random Forest with a dummy baseline. The committed report records:
 
-**Per-Class Performance:**
-| Class | Test Samples | Accuracy |
-|-------|-------------|----------|
-| Low | 2,180 | 98.5% |
-| Moderate | 0 (only 4 total in dataset) | N/A |
-| High | 33 | 0.0% (absorbed into Low) |
-| Critical | 187 | 73.3% |
+| Metric | District holdout | Five-fold grouped CV |
+|--------|------------------|----------------------|
+| Balanced accuracy | 0.762 | 0.773 ± 0.013 |
+| Positive-class recall | 0.592 | 0.601 ± 0.024 |
+| Positive-class F1 | 0.515 | 0.574 ± 0.029 |
+| ROC-AUC | 0.861 | 0.879 ± 0.024 |
+| PR-AUC | 0.564 | 0.646 ± 0.038 |
 
-The **small gap between train and test accuracy (99.98% vs 95.2%)** indicates the model generalizes well and is not significantly overfitting. Gradient Boosting alone achieves 95.3%, while Random Forest achieves 88.8% — the ensemble provides robustness through soft voting.
+The dataset contains 12,000 mixed regional, derived and realistically generated
+prototype rows. Its labels are generated/derived rather than prospectively
+observed field outcomes. Therefore these metrics verify the software and
+methodology only; they are **not real-world landslide-warning accuracy**. The
+four runtime risk levels are also partly derived from feature-based severity
+rules and are not independent ground-truth classes.
 
 ---
 
@@ -725,10 +721,13 @@ The entire system runs on a **Raspberry Pi** — SQLite + FastAPI + React static
 
 **A:** The system has a **3-tier fallback:**
 1. **Try cached model** (`models/geoshield_model.pkl`) — fastest startup
-2. **Try real training data** (`datasets/processed/real_ner_training_data.csv`) — retrain with real NER data
+2. **Use the bundled mixed-provenance table** (`datasets/processed/real_ner_training_data.csv`) — regional, derived and realistically generated prototype data
 3. **Fall back to synthetic data** — generate 5,000 samples with realistic random distributions
 
-The system **never fails to start** — it always produces a working model.
+Demo/testing mode can use the explicit synthetic fallback. Production fails
+closed when valid training data is unavailable and
+`ALLOW_SYNTHETIC_MODEL_FALLBACK=false`; this prevents a fallback model from being
+silently presented as operational.
 
 ---
 
@@ -816,9 +815,9 @@ The system **never fails to start** — it always produces a working model.
 
 | Time | Page | What to Show |
 |------|------|-------------|
-| 0:00-0:30 | **Dashboard** | 20 stations, risk pie chart, rainfall trends, real satellite metrics |
+| 0:00-0:30 | **Dashboard** | 20 seeded stations, risk pie chart, rainfall trends, clearly labelled live/cached/fallback sources |
 | 0:30-1:00 | **Risk Map** | Interactive Leaflet heatmap, click Cherrapunji for prediction, road status |
-| 1:00-2:00 | **Simulator** | Select Cherrapunji → CRITICAL → Run → Risk 95.4/100 → Alert generated |
+| 1:00-2:00 | **Simulator** | Select Cherrapunji → CRITICAL → Run → show returned score/level → confirm persisted alert |
 | 2:00-2:30 | **Satellite** | Compare Tawang (2791m, high risk) vs Agartala (12m, low risk) |
 | 2:30-2:45 | **Language** | Switch to Hindi → Bengali → Assamese, show full UI translation |
 | 2:45-3:00 | **Demo Flow** | Show 8-step guide for judges to explore themselves |
@@ -828,14 +827,14 @@ The system **never fails to start** — it always produces a working model.
 ### Q13.2: What are the key metrics to highlight?
 
 **A:**
-- **95.2% model accuracy, 94.6% F1** on real NER data
-- **12,000 training samples** from actual NER terrain
-- **45 REST endpoints** — production-grade API
-- **75/75 automated tests** passing
-- **330+ translation keys** × 4 languages = **1,320+ translated strings**
-- **20 real NER stations** with actual coordinates verified against Google Maps
+- **Reproducible district-grouped prototype evaluation**, clearly separated from field accuracy
+- **12,000 mixed-provenance prototype samples** with documented limitations
+- **Expanded REST API** covering monitoring, ML, reports and communications
+- **128 automated backend tests** in the current regression suite
+- **5 UI languages:** English, Hindi, Bengali, Assamese and Odia
+- **20 seeded reference NER station locations** used to demonstrate the software workflow
 - **44 historical landslide events** documented (2011-2024)
-- **<30 seconds** end-to-end from server start to predictions ready
+- **Repeatable local startup** after one-time dependency/build preparation
 
 ---
 
@@ -844,8 +843,8 @@ The system **never fails to start** — it always produces a working model.
 **A:** The most common judge questions and best answers:
 
 1. **"Why not use deep learning?"** → See Q2.2 (tabular data, small dataset, interpretability)
-2. **"How accurate is the model?"** → 95.2% test accuracy, 94.6% F1 weighted, per-class: Low 98.5%, Critical 73.3% (see Q4.4)
-3. **"Is the data real?"** → Hybrid: real coordinates + realistic features + NASA GLC labels (see Q5.2)
+2. **"How accurate is the model?"** → The committed grouped evaluation reports its metrics on generated/derived prototype labels; no field-accuracy claim is made (see Q4.4).
+3. **"Is the data real?"** → Mixed provenance: regional/public source material plus derived and realistically generated prototype rows; labels are not prospective field outcomes (see Q5.2).
 4. **"What happens in low connectivity?"** → SQLite offline-first, cached satellite data (see Q11.2)
 5. **"How do you handle false positives?"** → Intentional over-prediction for safety; 4-tier severity allows graduated response
 6. **"Can this scale?"** → PostgreSQL + load balancing + MQTT pipeline (see Q10.2)
@@ -860,12 +859,12 @@ The system **never fails to start** — it always produces a working model.
 |---|----------|--------|
 | 1 | Total API endpoints? | **45** REST + 2 WebSocket |
 | 2 | Database models? | **8** SQLAlchemy models |
-| 3 | Frontend pages? | **9** pages + 2 components |
-| 4 | Translation languages? | **4** (EN, HI, BN, AS) |
-| 5 | Test count? | **75** (35 API + 40 E2E) |
-| 6 | Model accuracy? | **95.2% (94.6% F1)** |
-| 7 | Training samples? | **12,000** NER terrain samples |
-| 8 | Sensor stations? | **20** across 8 NER states |
+| 3 | Frontend pages? | Multiple operational views for monitoring, maps, alerts, reports and administration |
+| 4 | Translation languages? | **5** (EN, HI, BN, AS, OR) |
+| 5 | Test count? | **128 backend tests** |
+| 6 | Model accuracy? | **Prototype grouped metrics only; no field-accuracy claim** |
+| 7 | Training samples? | **12,000 mixed-provenance prototype rows** |
+| 8 | Sensor stations? | **20 seeded reference locations** across 8 NER states; real gateways are optional |
 | 9 | Historical events? | **44** documented (2011-2024) |
 | 10 | Monitored roads? | **48** with status tracking |
 | 11 | Tracked villages? | **18** with population data |

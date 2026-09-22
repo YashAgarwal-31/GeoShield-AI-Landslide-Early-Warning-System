@@ -4,11 +4,19 @@ from __future__ import annotations
 import os
 import subprocess
 import sys
+from pathlib import Path
+
+
+BACKEND_DIR = Path(__file__).resolve().parents[1]
 
 
 def _run_python(code: str, env: dict[str, str]) -> subprocess.CompletedProcess[str]:
     merged = os.environ.copy()
     merged.update(env)
+    existing_pythonpath = merged.get("PYTHONPATH", "")
+    merged["PYTHONPATH"] = os.pathsep.join(
+        part for part in (str(BACKEND_DIR), existing_pythonpath) if part
+    )
     return subprocess.run(
         [sys.executable, "-c", code],
         env=merged,

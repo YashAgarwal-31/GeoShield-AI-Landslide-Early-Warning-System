@@ -242,7 +242,7 @@ Sensor Reading → AI Risk Assessment → Risk Score → Alert Generation
 | Risk Assessment Refresh | Every 30 seconds |
 | Alert Broadcast | Real-time WebSocket |
 | Historical Data Retention | 7 days (expandable) |
-| Supported Languages | 4 (EN, HI, BN, AS) |
+| Supported Languages | 5 (EN, HI, BN, AS, OR) |
 | Browser Support | Chrome, Firefox, Safari, Edge |
 
 ---

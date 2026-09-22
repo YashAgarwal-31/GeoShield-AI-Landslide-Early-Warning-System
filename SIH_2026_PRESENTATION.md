@@ -52,9 +52,9 @@
 
 | # | Feature | Description |
 |---|---------|-------------|
-| 1 | **Real-Time Monitoring** | 20 IoT sensor stations across 8 NER states |
-| 2 | **AI Risk Prediction** | Random Forest + Gradient Boosting ensemble (78.2% accuracy) |
-| 3 | **Early Warning** | Multi-level alerts with SMS/push notification support |
+| 1 | **Monitoring Workflow** | 20 seeded reference stations plus authenticated external gateway ingestion |
+| 2 | **AI Risk Prediction** | RF + Gradient Boosting runtime ensemble; separately reproducible district-grouped prototype evaluation |
+| 3 | **Early Warning** | Multi-level alerts; WebSocket locally, SMS/push when providers are configured |
 | 4 | **GIS Risk Mapping** | Interactive Leaflet.js heatmaps with click-to-predict |
 | 5 | **Citizen Reporting** | Geo-tagged photo/video reports from field officers |
 | 6 | **Multilingual UI** | English, Hindi, Bengali, Assamese support |
@@ -88,7 +88,7 @@
 │  │ Random Forest        │ │ Gradient Boosting    │     │
 │  │ (200 trees, d=15)    │ │ (150 trees, d=8)     │     │
 │  └──────────────────────┘ └──────────────────────┘     │
-│  Training: 12,000 NER samples | 9 features | 78.2% acc │
+│  Training: 12,000 mixed/derived samples | 9 features       │
 ├─────────────────────────────────────────────────────────┤
 │                    DATA LAYER                            │
 │  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐  │
@@ -106,9 +106,9 @@
 
 ### Model Architecture
 - **Algorithm:** Voting Classifier (RF + Gradient Boosting)
-- **Training Data:** 12,000 real NER terrain samples
+- **Training Data:** 12,000 mixed regional, derived and realistically generated prototype samples
 - **Features:** 9 input features
-- **Accuracy:** 78.2% (test) / 99.9% (train)
+- **Validation:** district-disjoint evaluation is reproducible; reported metrics are not field accuracy
 
 ### Feature Importance
 
@@ -228,8 +228,8 @@
 - 24h and 7-day rainfall totals
 
 ### NER-Wide Summary
-- 20 stations with real satellite data
-- Composite risk scoring from real metrics
+- 20 seeded reference stations with live/cached/fallback-labelled environmental data
+- Composite prototype risk scoring from source-labelled live/cached/fallback inputs
 - Automatic risk zone classification
 
 ---
@@ -303,13 +303,13 @@
 
 | Metric | Value |
 |--------|-------|
-| **AI Model Accuracy** | 78.2% (tested on 12,000 samples) |
+| **Prototype ML validation** | District-grouped evaluation on generated/derived labels; not field accuracy |
 | **Sensor Stations** | 20 across 8 NER states |
-| **API Endpoints** | 17 fully functional |
+| **API Surface** | Auth, monitoring, prediction, alerts, reports, integrations and communications |
 | **Historical Events** | 44 documented (2011-2024) |
 | **Real Satellite Data** | 20 stations with live metrics |
 | **Response Time** | <30 seconds for AI assessment |
-| **Languages Supported** | 4 (EN, HI, BN, AS) |
+| **Languages Supported** | 5 (EN, HI, BN, AS, OR) |
 | **Deployment Ready** | Docker, Railway, Render |
 
 ### Potential Impact

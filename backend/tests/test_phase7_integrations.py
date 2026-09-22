@@ -1,5 +1,6 @@
 import asyncio
 import os
+from datetime import date, timedelta
 
 import numpy as np
 from fastapi.testclient import TestClient
@@ -75,17 +76,23 @@ def test_imd_adapter_selects_nearest_geocoded_station(monkeypatch):
 
 
 def test_flood_summary_extracts_live_discharge_series():
+    today = date.today()
     payload = {
         "daily_units": {"river_discharge": "m³/s"},
         "daily": {
-            "time": ["2026-09-18", "2026-09-19", "2026-09-20"],
+            "time": [
+                (today - timedelta(days=1)).isoformat(),
+                today.isoformat(),
+                (today + timedelta(days=1)).isoformat(),
+            ],
             "river_discharge": [100.0, 120.0, 150.0],
             "river_discharge_max": [110.0, 140.0, 180.0],
         },
     }
     result = FloodForecastAdapter._summarize(payload)
     assert result["river_discharge_unit"] == "m³/s"
-    assert result["river_discharge_forecast_max"] is not None
+    assert result["river_discharge_today"] == 120.0
+    assert result["river_discharge_forecast_max"] == 180.0
 
 
 def test_notification_dispatch_is_safe_when_external_delivery_disabled(monkeypatch):
